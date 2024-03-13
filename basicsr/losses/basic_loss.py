@@ -23,6 +23,12 @@ def mse_loss(pred, target):
 def charbonnier_loss(pred, target, eps=1e-12):
     return torch.sqrt((pred - target)**2 + eps)
 
+@LOSS_REGISTRY.register()
+class FakeLoss(nn.Module):
+    def __init__(self):
+        super(FakeLoss,self).__init__()
+    def forward(self, loss):
+        return loss
 
 @LOSS_REGISTRY.register()
 class L1Loss(nn.Module):
