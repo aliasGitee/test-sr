@@ -134,7 +134,7 @@ class Unet(nn.Module):
                     x = x + self.up_proj(img_lr_up)
             h.append(x)
             x = downsample(x)
-            print(x.shape)
+            #print(x.shape)
 
         x = self.mid_block1(x, t)
         if hparams['use_attn']:
