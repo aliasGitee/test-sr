@@ -2,7 +2,7 @@ from torch.utils import data as data
 from torchvision.transforms.functional import normalize
 
 from basicsr.data.data_util import paired_paths_from_folder, paired_paths_from_lmdb, paired_paths_from_meta_info_file
-from basicsr.data.transforms import augment, paired_random_crop
+from basicsr.data.transforms import augment, paired_random_crop, mod_crop
 from basicsr.utils import FileClient, bgr2ycbcr, imfrombytes, img2tensor
 from basicsr.utils.registry import DATASET_REGISTRY
 
@@ -91,6 +91,11 @@ class PairedImageDataset(data.Dataset):
         # crop the unmatched GT images during validation or testing, especially for SR benchmark datasets
         # TODO: It is better to update the datasets, rather than force to crop
         if self.opt['phase'] != 'train':
+            '''
+            for srdiff-unet
+            '''
+            img_lq = mod_crop(img_lq, 8)
+            ''''''
             img_gt = img_gt[0:img_lq.shape[0] * scale, 0:img_lq.shape[1] * scale, :]
 
         # BGR to RGB, HWC to CHW, numpy to tensor

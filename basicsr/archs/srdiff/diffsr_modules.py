@@ -134,6 +134,7 @@ class Unet(nn.Module):
                     x = x + self.up_proj(img_lr_up)
             h.append(x)
             x = downsample(x)
+            print(x.shape)
 
         x = self.mid_block1(x, t)
         if hparams['use_attn']:
@@ -157,5 +158,14 @@ class Unet(nn.Module):
 
         self.apply(remove_weight_norm)
 
+if __name__ == '__main__':
+    x = torch.randn(1,3,192,192)
+    dim_mults = '1|2|3|4'
+    dim_mults = [int(x) for x in dim_mults.split('|')]
+
+    #rrdb_out, cond = rrdb(img_lr, True)
+
+    # x, time, cond, img_lr_up
+    model = Unet(dim=64,cond_dim=32,dim_mults=dim_mults)
 
 
