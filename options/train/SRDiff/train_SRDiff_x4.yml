@@ -14,12 +14,12 @@ datasets:
     dataroot_lq: datasets/DF2K/DF2K_train_LR_bicubic/X4
     # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
     # dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub
-    filename_tmpl: "{}x4"
+    filename_tmpl: "{}"
     io_backend:
       type: disk
       # type: lmdb
 
-    gt_size: 192
+    gt_size: 640 #192
     use_hflip: true
     use_rot: true
     mean: [0.5, 0.5, 0.5]
@@ -73,7 +73,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 215 #change
+  val_freq: !!float 2000 #change
   save_img: true
 
   metrics:
@@ -88,8 +88,8 @@ val:
 
 # logging settings
 logger:
-  print_freq: 10 #change
-  save_checkpoint_freq: !!float 215 #5e3
+  print_freq: 100 #change
+  save_checkpoint_freq: !!float 10000 #5e3
   use_tb_logger: true
   wandb:
     project: ~

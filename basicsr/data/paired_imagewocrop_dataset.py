@@ -77,7 +77,7 @@ class PairedImageWOCropDataset(data.Dataset):
 
         # augmentation for training
         if self.opt['phase'] == 'train':
-            #gt_size = self.opt['gt_size']
+            gt_size = self.opt['gt_size']
             # random crop
             img_gt, img_lq = paired_random_crop(img_gt, img_lq, gt_size, scale, gt_path)
             # flip, rotation
