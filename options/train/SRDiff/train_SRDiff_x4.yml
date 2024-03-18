@@ -9,7 +9,7 @@ manual_seed: 1234
 datasets:
   train:
     name: DIV2K
-    type: PairedImageWOCropDataset #PairedImageDataset
+    type: PairedImageDataset
     dataroot_gt: datasets/DF2K/DF2K_train_HR
     dataroot_lq: datasets/DF2K/DF2K_train_LR_bicubic/X4
     # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
