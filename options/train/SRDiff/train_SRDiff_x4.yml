@@ -10,8 +10,8 @@ datasets:
   train:
     name: DIV2K
     type: PairedImageWOCropDataset #PairedImageDataset
-    dataroot_gt: datasets/DF2K/DIV2K_train_HR
-    dataroot_lq: datasets/DF2K/DIV2K_train_LR_bicubic/X4
+    dataroot_gt: datasets/DF2K/DF2K_train_HR
+    dataroot_lq: datasets/DF2K/DF2K_train_LR_bicubic/X4
     # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
     # dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub
     filename_tmpl: "{x4}"
