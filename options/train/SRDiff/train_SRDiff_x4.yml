@@ -28,7 +28,7 @@ datasets:
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 3 #change
-    batch_size_per_gpu: 32 #change
+    batch_size_per_gpu: 16 #change
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -73,7 +73,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 1000 #change
+  val_freq: !!float 215 #change
   save_img: true
 
   metrics:
@@ -88,8 +88,8 @@ val:
 
 # logging settings
 logger:
-  print_freq: 100 #change
-  save_checkpoint_freq: !!float 1148 #5e3
+  print_freq: 10 #change
+  save_checkpoint_freq: !!float 215 #5e3
   use_tb_logger: true
   wandb:
     project: ~
