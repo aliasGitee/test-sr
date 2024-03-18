@@ -30,7 +30,7 @@ class SRDiff(nn.Module):
             loss_type=hparams['loss_type']
         )
         self.scale_factor = hparams['sr_scale']
-        self.sample_type = 'ddim'
+        self.sample_type = 'ddpm'
 
     def sample(self,img_lr):
         img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')

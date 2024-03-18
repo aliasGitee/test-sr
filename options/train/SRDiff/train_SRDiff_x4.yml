@@ -24,6 +24,8 @@ datasets:
     gt_size: 192
     use_hflip: true
     use_rot: true
+    mean: [0.5, 0.5, 0.5]
+    std: [0.5, 0.5, 0.5]
 
     # data loader
     use_shuffle: true
