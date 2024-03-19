@@ -13,11 +13,11 @@ from basicsr.models import lr_scheduler
 
 
 @MODEL_REGISTRY.register()
-class SRModel(BaseModel):
+class TESTSR01Model(BaseModel):
     """Base SR model for single image super-resolution."""
 
     def __init__(self, opt):
-        super(SRModel, self).__init__(opt)
+        super(TESTSR01Model, self).__init__(opt)
 
         # define network
         self.net_g = build_network(opt['network_g'])
