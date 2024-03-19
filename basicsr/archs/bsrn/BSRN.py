@@ -183,19 +183,18 @@ class ESDB(nn.Module):
         self.rc = self.remaining_channels = in_channels
 
         self.c1_d = nn.Conv2d(in_channels, self.dc, 1)
-        self.c1_r = conv(in_channels, self.rc, kernel_size=9)
+        self.c1_r = conv(in_channels, self.rc, kernel_size=3)
 
         self.c2_d = nn.Conv2d(self.remaining_channels, self.dc, 1)
-        self.c2_r = conv(self.remaining_channels, self.rc, kernel_size=9)
+        self.c2_r = conv(self.remaining_channels, self.rc, kernel_size=3)
 
         self.c3_d = nn.Conv2d(self.remaining_channels, self.dc, 1)
-        self.c3_r = conv(self.remaining_channels, self.rc, kernel_size=9)
+        self.c3_r = conv(self.remaining_channels, self.rc, kernel_size=3)
 
-        self.c4 = conv(self.remaining_channels, self.dc, kernel_size=9)
+        self.c4 = conv(self.remaining_channels, self.dc, kernel_size=3)
         self.act = nn.GELU()
 
         self.c5 = nn.Conv2d(self.dc * 4, in_channels, 1)
-        self.attn = MLABlock(dim=288)
 
     def forward(self, input):
 
@@ -215,7 +214,6 @@ class ESDB(nn.Module):
 
         out = torch.cat([distilled_c1, distilled_c2, distilled_c3, r_c4], dim=1)
         out = self.c5(out)
-        out = self.attn(out)
         return out
 
 
@@ -310,7 +308,7 @@ class BSRN2(nn.Module):
         self.c1 = nn.Conv2d(num_feat * num_block, num_feat, 1)
         self.GELU = nn.GELU()
 
-        self.c2 = self.conv(num_feat, num_feat, kernel_size=9)
+        self.c2 = self.conv(num_feat, num_feat, kernel_size=3)
 
 
         if upsampler == 'pixelshuffledirect':
@@ -325,17 +323,26 @@ class BSRN2(nn.Module):
             raise NotImplementedError(("Check the Upsampeler. None or not support yet"))
 
         self.pm = PixelMixer(planes=num_feat,mix_margin=1)
+        #self.attn = MLABlock(dim=288)
 
     def forward(self, input):
         input = torch.cat([input, input, input, input], dim=1)
         out_fea = self.fea_conv(input)
+
         out_B1 = self.B1(out_fea)
+
         out_B2 = self.B2(self.pm(out_B1))
+
         out_B3 = self.B3(self.pm(out_B2))
+
         out_B4 = self.B4(self.pm(out_B3))
+
         out_B5 = self.B5(self.pm(out_B4))
+
         out_B6 = self.B6(self.pm(out_B5))
+
         out_B7 = self.B7(self.pm(out_B6))
+
         out_B8 = self.B8(self.pm(out_B7))
 
         trunk = torch.cat([out_B1, out_B2, out_B3, out_B4, out_B5, out_B6, out_B7, out_B8], dim=1)
@@ -350,6 +357,9 @@ class BSRN2(nn.Module):
 
 
 if __name__ == '__main__':
+    import thop
     model = BSRN2(num_feat=32)
-    x = torch.randn(1,3,32,32)
-    print(model(x).shape)
+    x = torch.randn(1,3,48,48)
+    total_ops, total_params = thop.profile(model,(x,))
+    #print(model(x).shape)
+    print(total_params)

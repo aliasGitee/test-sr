@@ -80,6 +80,5 @@ class EConvMixer(nn.Module):
         x = self.act(x)
         x = self.ddw(x)
         x = self.act(x)
-
         return x
 
