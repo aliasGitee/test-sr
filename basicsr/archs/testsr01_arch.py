@@ -7,7 +7,7 @@ from basicsr.utils.registry import ARCH_REGISTRY
 class TESTSR01(nn.Module):
     def __init__(self):
         super(TESTSR01,self).__init__()
-        self.arch_all = BSRN2(upscale=2)
+        self.arch_all = BSRN2(num_feat=60,upscale=2)
     def forward(self,x):
         x = self.arch_all(x)
         return x

@@ -294,7 +294,7 @@ class BSRN(nn.Module):
         return output
 
 class BSRN2(nn.Module):
-    def __init__(self, num_in_ch=3, num_feat=32, num_block=8, num_out_ch=3, upscale=4,
+    def __init__(self, num_in_ch=3, num_feat=60, num_block=8, num_out_ch=3, upscale=4,
                   upsampler='pixelshuffledirect'):
         super(BSRN2, self).__init__()
 
