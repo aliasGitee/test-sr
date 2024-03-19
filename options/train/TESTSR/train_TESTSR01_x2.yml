@@ -56,7 +56,7 @@ train:
 
   scheduler:
     type: StepLR
-    periods: 10000
+    step_size: 10000
     gamma: 0.5
     last_epoch: -1
 
