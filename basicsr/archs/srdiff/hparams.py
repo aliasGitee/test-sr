@@ -35,3 +35,4 @@ hparams = {'binary_data_dir': 'data/binary/df2k4x',
            'lr': 0.0002, 'decay_steps': 200000, 'style_interp': False, 'save_intermediate': False, 'show_training_process': False,
            'print_arch': False, 'patch_size': 160, 'crop_size': 320, 'thresh_size': 160, 'test_crop_size': [2040, 2040],
            'test_thresh_size': 0, 'sr_scale': 4, 'trainer_cls': 'tasks.srdiff_df2k.SRDiffDf2k', 'validate': False, 'exp_name': 'xxx'}
+
