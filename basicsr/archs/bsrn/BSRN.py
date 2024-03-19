@@ -14,6 +14,7 @@ import basicsr.archs.bsrn.Upsamplers as Upsamplers
 from basicsr.archs.bsrn.EConvMixer import EConvMixer
 from basicsr.archs.bsrn.ESRT import MLABlock
 from basicsr.archs.bsrn.EMT import PixelMixer
+from basicsr.archs.arch_util import xavier_init_weights
 
 
 class DepthWiseConv(nn.Module):
@@ -196,6 +197,8 @@ class ESDB(nn.Module):
 
         self.c5 = nn.Conv2d(self.dc * 4, in_channels, 1)
 
+        self.pm = PixelMixer(planes=self.dc, mix_margin=1)
+
     def forward(self, input):
 
         distilled_c1 = self.act(self.c1_d(input))
@@ -211,6 +214,8 @@ class ESDB(nn.Module):
         r_c3 = self.act(r_c3 + r_c2)
 
         r_c4 = self.act(self.c4(r_c3))
+
+        distilled_c1, distilled_c2, distilled_c3, r_c4 = self.pm(distilled_c1), self.pm(distilled_c2), self.pm(distilled_c3), self.pm(r_c4)
 
         out = torch.cat([distilled_c1, distilled_c2, distilled_c3, r_c4], dim=1)
         out = self.c5(out)
@@ -322,8 +327,10 @@ class BSRN2(nn.Module):
         else:
             raise NotImplementedError(("Check the Upsampeler. None or not support yet"))
 
-        self.pm = PixelMixer(planes=num_feat,mix_margin=1)
-        #self.attn = MLABlock(dim=288)
+        self.pm = nn.Identity()#PixelMixer(planes=num_feat,mix_margin=1)
+
+        xavier_init_weights([self.B1,self.B2,self.B3,self.B4,self.B5,self.B6,self.B7,self.B8],gain=0.02)
+        xavier_init_weights([self.fea_conv,self.c1,self.c2,self.upsampler])
 
     def forward(self, input):
         input = torch.cat([input, input, input, input], dim=1)
@@ -358,8 +365,7 @@ class BSRN2(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    model = BSRN2(num_feat=32)
+    model = BSRN2(num_feat=60)
     x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model,(x,))
-    #print(model(x).shape)
     print(total_params)

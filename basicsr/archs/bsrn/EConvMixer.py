@@ -76,8 +76,10 @@ class EConvMixer(nn.Module):
     def forward(self,x):
         x = self.pw(x)
         x = self.dw(x)
+        x_copy = x
         x = self.pw2(x)
         x = self.act(x)
+        x = x+x_copy
         x = self.ddw(x)
         x = self.act(x)
         return x
