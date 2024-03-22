@@ -1,0 +1,103 @@
+# general settings
+name: test_NAFDiff_x4
+model_type: NAFDiffModel
+scale: 4
+num_gpu: 0 #change 1 # set num_gpu: 0 for cpu mode
+manual_seed: 0
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: DIV2K
+    type: PairedImageDataset
+    dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
+    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub
+    #    (for lmdb)
+    # dataroot_gt: ./datasets/DIV2K/DIV2K_HR_sub.lmdb
+    # dataroot_lq: ./datasets/DF2K/DF2K_train_LR_bicubic_X2_sub.lmdb
+    filename_tmpl: "{}"
+    io_backend:
+      type: disk
+      # (for lmdb)
+      # type: lmdb
+
+    gt_size: 192
+    use_hflip: true
+    use_rot: true
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 0 #change
+    batch_size_per_gpu: 2 #change
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+  val:
+    name: Set5 #change
+    type: PairedImageDataset
+    dataroot_gt: ./datasets/Set5/GTmod12 #change
+    dataroot_lq: ./datasets/Set5/LRbicx4 #change
+    io_backend:
+      type: disk
+
+# network structures
+network_g:
+  type: NAFDiff
+
+# path
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state:
+
+# training settings
+train:
+  optim_g:
+    type: Adam
+    lr: !!float 1e-3
+    #weight_decay: 0
+    #betas: [0.9, 0.999]
+
+  scheduler:
+    type: StepLR
+    step_size: 100000
+    gamma: 0.5
+    last_epoch: -1
+
+  total_iter: 400000
+  warmup_iter: -1 # no warm up
+
+  # losses
+  pixel_opt:
+    type: FakeLoss
+
+# validation settings
+val:
+  val_freq: !!float 6 #change
+  save_img: true
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 2
+      test_y_channel: true
+    ssim: # metric name, can be arbitrary
+      type: calculate_ssim
+      crop_border: 2
+      test_y_channel: true
+
+# logging settings
+logger:
+  print_freq: 2 #change
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+    entity: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
+# python basicsr/train.py -opt options/train/NAFDiff/train_NAFDiffcpu_x4.yml
