@@ -2,6 +2,7 @@ from basicsr.archs.nafnet.NAFSSR import NAFNetSR as dnmodel
 import torch
 import torch.nn as nn
 
+
 class DenoiseNet(nn.Module):
     def __init__(self):
         super().__init__()
