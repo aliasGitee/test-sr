@@ -263,7 +263,7 @@ class GaussianDiffusion(nn.Module):
         )
     def model_predictions(self, x, t, x_self_cond = None, clip_x_start = False,rederive_pred_noise = False):
         x_start = self.predict_start_from_noise(
-            x, t=t, noise=self.denoise_fn(x, x_self_cond, t))
+            x, t=t, noise=self.denoise_fn(x, t, x_self_cond))
         x_start.clamp_(-1., 1.)
 
         if clip_x_start and rederive_pred_noise:

@@ -296,8 +296,8 @@ class Restormer(nn.Module):
         return out_dec_level1
 
 if __name__ == '__main__':
-    xt = torch.randn(1,3,192,192)
-    cond = torch.randn(1,3,192,192)
+    xt = torch.randn(1,3,288,288)
+    cond = torch.randn(1,3,288,288)
     t = torch.tensor([1])
     model = Restormer(inp_channels=3,
         out_channels=3,

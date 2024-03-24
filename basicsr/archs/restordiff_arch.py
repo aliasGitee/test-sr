@@ -1,8 +1,8 @@
 import torch.nn.functional as F
 from torch import nn
-from basicsr.archs.nafnet.hparams import hparams
-from basicsr.archs.nafnet.denoise_modulers import DenoiseNet as denoise_fn
-from basicsr.archs.nafnet.diffusion import GaussianDiffusion
+from basicsr.archs.restormer.hparams import hparams
+from basicsr.archs.restormer.restormer import Restormer as denoise_fn
+from basicsr.archs.restormer.diffusion import GaussianDiffusion
 from basicsr.utils.registry import ARCH_REGISTRY
 
 
@@ -12,7 +12,15 @@ class RestorDiff(nn.Module):
         super(RestorDiff, self).__init__()
 
         self.model = GaussianDiffusion(
-            denoise_fn=denoise_fn(),
+            denoise_fn=denoise_fn(
+                inp_channels=3,
+                out_channels=3,
+                dim = 16,
+                num_blocks = [2,3,3,4],
+                num_refinement_blocks = 4,
+                heads = [1,2,2,4],
+                ffn_expansion_factor = 2.66
+            ),
             timesteps=1000,
             sampling_timesteps=100,
             loss_type='l1')
@@ -24,7 +32,7 @@ class RestorDiff(nn.Module):
         img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')
         shape = img_lr_up.shape
         if self.sample_type == 'ddim':
-            img =  self.model.sample_ddim(img_lr_up, shape)
+            img =  self.model.ddim_sample(img_lr_up, shape)
         else:
             img =  self.model.sample(img_lr_up, shape)
         return img
