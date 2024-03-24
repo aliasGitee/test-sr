@@ -2,10 +2,10 @@ import functools
 import torch
 from torch import nn
 import torch.nn.functional as F
-from hparams import hparams
-from module_util import make_layer, initialize_weights
-from commons import Mish, SinusoidalPosEmb, RRDB, Residual, Rezero, LinearAttention
-from commons import ResnetBlock, Upsample, Block, Downsample
+from basicsr.archs.srdiff.hparams import hparams
+from basicsr.archs.srdiff.module_util import make_layer, initialize_weights
+from basicsr.archs.srdiff.commons import Mish, SinusoidalPosEmb, RRDB, Residual, Rezero, LinearAttention
+from basicsr.archs.srdiff.commons import ResnetBlock, Upsample, Block, Downsample
 
 
 class RRDBNet(nn.Module):
