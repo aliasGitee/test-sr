@@ -339,9 +339,9 @@ if __name__ == '__main__':
     model = Restormer(inp_channels=3,
         out_channels=3,
         dim = 16,
-        num_blocks = [2,3,3,4],
+        num_blocks = [1,2,2,2],
         num_refinement_blocks = 4,
-        heads = [1,2,2,4],
+        heads = [1,2,4,8],
         ffn_expansion_factor = 2.66)
     #print(model(x).shape)
     import thop
