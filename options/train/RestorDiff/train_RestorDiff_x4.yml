@@ -39,6 +39,7 @@ datasets:
     dataroot_lq: ./datasets/Set14/LRbicx4 #change
     io_backend:
       type: disk
+    val_img_size_mod: 8
 
 # network structures
 network_g:
@@ -53,16 +54,16 @@ path:
 # training settings
 train:
   optim_g:
-    type: Adam
+    type: AdamW
     lr: !!float 2e-4
-    #weight_decay: 0
-    #betas: [0.9, 0.999]
+    weight_decay: 1e-4
+    betas: [0.9, 0.999]
 
   scheduler:
-    type: StepLR
-    step_size: 86000
-    gamma: 0.5
-    last_epoch: -1
+    type: CosineAnnealingRestartCyclicLR
+    periods: [92000, 208000]
+    restart_weights: [1, 1]
+    eta_mins: [0.0003, 0.000001]
 
   total_iter: 430000
   warmup_iter: -1 # no warm up
@@ -73,7 +74,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 430 #change
+  val_freq: !!float 860 #change
   save_img: true
 
   metrics:
@@ -89,7 +90,7 @@ val:
 # logging settings
 logger:
   print_freq: 100 #change
-  save_checkpoint_freq: !!float 430 #5e3
+  save_checkpoint_freq: !!float 860 #5e3
   use_tb_logger: true
   wandb:
     project: ~

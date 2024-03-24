@@ -49,6 +49,11 @@ class RestorDiffModel(BaseModel):
         elif scheduler_type == 'StepLR':
             for optimizer in self.optimizers:
                 self.schedulers.append(torch.optim.lr_scheduler.StepLR(optimizer, **train_opt['scheduler']))
+        elif scheduler_type == 'CosineAnnealingRestartCyclicLR':
+            for optimizer in self.optimizers:
+                self.schedulers.append(
+                    lr_scheduler.CosineAnnealingRestartCyclicLR(
+                     optimizer, **train_opt['scheduler']))
         else:
             raise NotImplementedError(f'Scheduler {scheduler_type} is not implemented yet.')
     ''''''
