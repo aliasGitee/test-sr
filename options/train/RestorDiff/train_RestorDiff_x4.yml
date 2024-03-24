@@ -54,10 +54,10 @@ path:
 # training settings
 train:
   optim_g:
-    type: AdamW
-    lr: !!float 2e-3
-    weight_decay: !!float 1e-4
-    betas: [0.9, 0.999]
+    type: Adam
+    lr: !!float 1e-3
+    # weight_decay: !!float 1e-4
+    # betas: [0.9, 0.999]
 
   scheduler:
     type: CosineAnnealingRestartCyclicLR
