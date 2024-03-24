@@ -293,7 +293,7 @@ class Restormer(nn.Module):
 
         t = self.time_pos_emb(t)
 
-        inp_enc_level1 = self.patch_embed(inp_img + cond)
+        inp_enc_level1 = self.patch_embed(inp_img)
         out_enc_level1 = self.encoder_level1((inp_enc_level1 + self.time_mlp1(t)[:, :, None, None],cond))[0]
 
         inp_enc_level2 = self.down1_2(out_enc_level1)
