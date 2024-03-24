@@ -60,11 +60,11 @@ train:
 
   scheduler:
     type: StepLR
-    step_size: 43000
+    step_size: 86000
     gamma: 0.5
     last_epoch: -1
 
-  total_iter: 215000*2
+  total_iter: 430000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -73,7 +73,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 215*2 #change
+  val_freq: !!float 430 #change
   save_img: true
 
   metrics:
@@ -89,7 +89,7 @@ val:
 # logging settings
 logger:
   print_freq: 100 #change
-  save_checkpoint_freq: !!float 215*2 #5e3
+  save_checkpoint_freq: !!float 430 #5e3
   use_tb_logger: true
   wandb:
     project: ~
