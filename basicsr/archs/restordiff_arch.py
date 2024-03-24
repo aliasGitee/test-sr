@@ -26,12 +26,12 @@ class RestorDiff(nn.Module):
             loss_type='l1')
 
         self.scale_factor = hparams['sr_scale']
-        self.sample_type = 'ddim'
+        self.sample_type = 'ddpm'
 
     def sample(self,img_lr):
         img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')
         shape = img_lr_up.shape
-        if self.sample_type == 'ddpm':
+        if self.sample_type == 'ddim':
             img =  self.model.ddim_sample(img_lr_up, shape)
         else:
             img =  self.model.sample(img_lr_up, shape)
