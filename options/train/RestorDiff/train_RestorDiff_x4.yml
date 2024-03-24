@@ -65,7 +65,7 @@ train:
     restart_weights: [1, 1]
     eta_mins: [0.0002, 0.000001]
 
-  total_iter: 430000
+  total_iter: 431000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -74,7 +74,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 860 #change
+  val_freq: !!float 5e3 #change
   save_img: true
 
   metrics:
@@ -90,7 +90,7 @@ val:
 # logging settings
 logger:
   print_freq: 100 #change
-  save_checkpoint_freq: !!float 860 #5e3
+  save_checkpoint_freq: !!float 5e3
   use_tb_logger: true
   wandb:
     project: ~

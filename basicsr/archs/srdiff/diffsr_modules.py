@@ -2,10 +2,10 @@ import functools
 import torch
 from torch import nn
 import torch.nn.functional as F
-from .hparams import hparams
-from .module_util import make_layer, initialize_weights
-from .commons import Mish, SinusoidalPosEmb, RRDB, Residual, Rezero, LinearAttention
-from .commons import ResnetBlock, Upsample, Block, Downsample
+from hparams import hparams
+from module_util import make_layer, initialize_weights
+from commons import Mish, SinusoidalPosEmb, RRDB, Residual, Rezero, LinearAttention
+from commons import ResnetBlock, Upsample, Block, Downsample
 
 
 class RRDBNet(nn.Module):
@@ -159,13 +159,18 @@ class Unet(nn.Module):
         self.apply(remove_weight_norm)
 
 if __name__ == '__main__':
-    x = torch.randn(1,3,192,192)
-    dim_mults = '1|2|3|4'
+    hidden_size = hparams['hidden_size']
+    dim_mults = hparams['unet_dim_mults']
     dim_mults = [int(x) for x in dim_mults.split('|')]
 
-    #rrdb_out, cond = rrdb(img_lr, True)
-
     # x, time, cond, img_lr_up
-    model = Unet(dim=64,cond_dim=32,dim_mults=dim_mults)
+    model = Unet(hidden_size, out_dim=3, cond_dim=hparams['rrdb_num_feat'], dim_mults=dim_mults)
+
+    xt = torch.randn(1,3,192,192)
+    cond = [torch.randn(1,32,8,8) for _ in range(32)]
+    t = torch.tensor([1])
+    import thop
+    total_ops, total_params = thop.profile(model, (xt,t,cond,None,))
+    print(total_ops,' ',total_params)
 
 
