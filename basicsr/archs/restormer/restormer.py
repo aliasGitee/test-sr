@@ -252,7 +252,7 @@ class Restormer(nn.Module):
 
         self.output = nn.Conv2d(int(dim*2**1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias)
 
-        self.cond_proj = nn.ConvTranspose2d(in_channels=3,out_channels=16,kernel_size=4*2,stride=4,padding=4//2)
+        self.cond_proj = nn.ConvTranspose2d(in_channels=3,out_channels=dim,kernel_size=4*2,stride=4,padding=4//2)
         self.time_pos_emb = TimeEmbedHead(dim=dim)
 
     def forward(self, inp_img,t,cond):
