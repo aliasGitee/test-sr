@@ -29,15 +29,15 @@ class RestorDiff(nn.Module):
         self.sample_type = 'ddpm'
 
     def sample(self,img_lr):
-        img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')
-        shape = img_lr_up.shape
+        #img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')
+        shape = img_lr.shape
         if self.sample_type == 'ddim':
-            img =  self.model.ddim_sample(img_lr_up, shape)
+            img =  self.model.ddim_sample(img_lr, shape)
         else:
-            img =  self.model.sample(img_lr_up, shape)
+            img =  self.model.sample(img_lr, shape)
         return img
 
     def forward(self,img_hr, img_lr, t=None):
-        img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')
-        loss = self.model(img_hr, img_lr_up, t)
+        #img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')
+        loss = self.model(img_hr, img_lr, t)
         return loss
