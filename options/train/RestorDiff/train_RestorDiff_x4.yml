@@ -55,7 +55,7 @@ path:
 train:
   optim_g:
     type: AdamW
-    lr: !!float 5e-5
+    lr: !!float 3e-4
     weight_decay: !!float 1e-4
     betas: [0.9, 0.999]
 
@@ -74,7 +74,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 6124 #change
+  val_freq: !!float 3000 #change
   save_img: true
 
   metrics:
