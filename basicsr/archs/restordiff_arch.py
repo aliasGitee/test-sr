@@ -1,7 +1,8 @@
 import torch.nn.functional as F
 from torch import nn
 from basicsr.archs.restormer.hparams import hparams
-from basicsr.archs.restormer.restormer import Restormer as denoise_fn
+#from basicsr.archs.restormer.restormer import Restormer as denoise_fn
+from basicsr.archs.restormer.unet import Unet as denoise_fn
 from basicsr.archs.restormer.diffusion import GaussianDiffusion
 from basicsr.utils.registry import ARCH_REGISTRY
 
@@ -12,15 +13,16 @@ class RestorDiff(nn.Module):
         super(RestorDiff, self).__init__()
 
         self.model = GaussianDiffusion(
-            denoise_fn=denoise_fn(
-                inp_channels=3,
-                out_channels=3,
-                dim = 16,
-                num_blocks = [2,4,4,4],
-                num_refinement_blocks = 4,
-                heads = [1,2,4,8],
-                ffn_expansion_factor = 2.66
-            ),
+            # denoise_fn=denoise_fn(
+            #     inp_channels=3,
+            #     out_channels=3,
+            #     dim = 16,
+            #     num_blocks = [2,4,4,4],
+            #     num_refinement_blocks = 4,
+            #     heads = [1,2,4,8],
+            #     ffn_expansion_factor = 2.66
+            # ),
+            denoise_fn= denoise_fn(),
             timesteps=2000,
             sampling_timesteps=2000,
             loss_type='l1')
@@ -30,7 +32,8 @@ class RestorDiff(nn.Module):
 
     def sample(self,img_lr):
         #img_lr_up = F.interpolate(img_lr,scale_factor=self.scale_factor,mode='bicubic')
-        shape = img_lr.shape
+        b,c,h,w = img_lr.shape
+        shape = (b,c,h*self.scale_factor, w*self.scale_factor)
         if self.sample_type == 'ddim':
             img =  self.model.ddim_sample(img_lr, shape)
         else:

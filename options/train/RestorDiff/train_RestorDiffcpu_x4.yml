@@ -39,6 +39,7 @@ datasets:
     dataroot_lq: ./datasets/Set5/LRbicx4 #change
     io_backend:
       type: disk
+    val_img_size_mod: 8
 
 # network structures
 network_g:
