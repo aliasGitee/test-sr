@@ -1,31 +1,35 @@
 import torch.nn.functional as F
 from torch import nn
-from basicsr.archs.restormer.hparams import hparams
-from basicsr.archs.restormer.restormer import Restormer as denoise_fn
-#from basicsr.archs.restormer.unet import Unet as denoise_fn
-from basicsr.archs.restormer.diffusion import GaussianDiffusion
+import torch
+from basicsr.archs.srdiff2.hparams import hparams
+from basicsr.archs.srdiff2.diffsr_modules import Unet, RRDBNet
+from basicsr.archs.srdiff2.diffusion import GaussianDiffusion
 from basicsr.utils.registry import ARCH_REGISTRY
 
 
 @ARCH_REGISTRY.register()
-class RestorDiff(nn.Module):
+class SRDiff2(nn.Module):
     def __init__(self):
-        super(RestorDiff, self).__init__()
+        super(SRDiff2, self).__init__()
 
+        hidden_size = hparams['hidden_size']
+        dim_mults = hparams['unet_dim_mults']
+        dim_mults = [int(x) for x in dim_mults.split('|')]
+        denoise_fn = Unet(
+            hidden_size, out_dim=3, cond_dim=hparams['rrdb_num_feat'], dim_mults=dim_mults)
+        if hparams['use_rrdb']:
+            rrdb = RRDBNet(3, 3, hparams['rrdb_num_feat'], hparams['rrdb_num_block'],
+                           hparams['rrdb_num_feat'] // 2)
+            rrdb_params = torch.load(hparams['load_ckpt'])['state_dict']
+            rrdb.load_state_dict(rrdb_params)
+        else:
+            rrdb = None
         self.model = GaussianDiffusion(
-            denoise_fn=denoise_fn(
-                inp_channels=3,
-                out_channels=3,
-                dim = 16,
-                num_blocks = [2,4,4,4],
-                num_refinement_blocks = 4,
-                heads = [1,2,4,8],
-                ffn_expansion_factor = 2.66
-            ),
-            timesteps=100,
-            sampling_timesteps=100,
-            loss_type='l1')
-
+            denoise_fn=denoise_fn,
+            rrdb_net=rrdb,
+            timesteps=hparams['timesteps'],
+            loss_type=hparams['loss_type']
+        )
         self.scale_factor = hparams['sr_scale']
         self.sample_type = 'ddpm'
 
