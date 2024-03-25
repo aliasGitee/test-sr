@@ -28,7 +28,7 @@ datasets:
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 3 #change
-    batch_size_per_gpu: 6 #change
+    batch_size_per_gpu: 4 #change
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -65,7 +65,7 @@ train:
     restart_weights: [1, 1]
     eta_mins: [0.0003, 0.000001]
 
-  total_iter: 431000
+  total_iter: 862000 #431000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -74,7 +74,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 3000 #change
+  val_freq: !!float 862 #change
   save_img: true
 
   metrics:
