@@ -11,10 +11,6 @@ import numbers
 
 from einops import rearrange
 
-from time_embed import TimeEmbedHead, TimeMlpMid
-
-
-
 ##########################################################################
 ## Layer Norm
 
