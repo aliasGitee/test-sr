@@ -3,7 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
+
+# archs
 from basicsr.archs.efficientvit.nn.ops import EfficientViTBlock
+from basicsr.archs.bsnr.BSRN_arch import BSConvU
 
 
 # Layer Norm
@@ -101,9 +104,15 @@ class CCM(nn.Module):
 class SAFM(nn.Module):
     def __init__(self, dim, n_levels=4):
         super().__init__()
-        self.block = EfficientViTBlock(in_channels=dim)
+        self.bsconv1 = BSConvU(in_channels=dim,out_channels=2*dim)
+        self.block = EfficientViTBlock(in_channels=2*dim)
+        self.bsconv2 = BSConvU(in_channels=2*dim,out_channels=dim)
+        self.act = nn.GELU()
+
     def forward(self, x):
+        x = self.act(self.bsconv1(x))
         x = self.block(x)
+        x = self.act(self.bsconv2(x))
         return x
 
 class AttBlock(nn.Module):
@@ -123,9 +132,7 @@ class AttBlock(nn.Module):
         x = self.ccm(self.norm2(x)) + x
         return x
 
-
-@ARCH_REGISTRY.register()
-class SAFMNFix(nn.Module):
+class SAFMN(nn.Module):
     def __init__(self, dim, n_blocks=8, ffn_scale=2.0, upscaling_factor=4):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
@@ -146,17 +153,8 @@ class SAFMNFix(nn.Module):
 
 
 if __name__== '__main__':
-    #############Test Model Complexity #############
-    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    # x = torch.randn(1, 3, 640, 360)
-    # x = torch.randn(1, 3, 427, 240)
-    x = torch.randn(1, 3, 320, 180)
-    # x = torch.randn(1, 3, 256, 256)
-
-    model = SAFMNFix(dim=36, n_blocks=8, ffn_scale=2.0, upscaling_factor=4)
-    # model = SAFMN(dim=36, n_blocks=12, ffn_scale=2.0, upscaling_factor=2)
-    print(model)
-    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
-    output = model(x)
-    print(output.shape)
+    import thop
+    x = torch.randn(1, 3, 48, 48)
+    model = SAFMN(dim=36, n_blocks=4, ffn_scale=2.0, upscaling_factor=4)
+    total_ops, total_params = thop.profile(model,(x,))
+    print(total_ops, ' ',total_params)
