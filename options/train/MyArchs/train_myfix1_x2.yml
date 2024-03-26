@@ -37,6 +37,7 @@ datasets:
 # network structures
 network_g:
   type: MyFix1
+  upscaling_factor: 2
 
 # path
 path:
@@ -92,3 +93,4 @@ logger:
 dist_params:
   backend: nccl
   port: 29500
+# python basicsr/train.py -opt options/train/MyArchs/train_myfix1_x2.yml
