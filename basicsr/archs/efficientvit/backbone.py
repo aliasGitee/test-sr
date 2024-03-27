@@ -71,6 +71,8 @@ class EfficientViTBackbone(nn.Module):
         self.width_list.append(in_channels)
 
         # stages
+        # width_list=[8,   16, 32,   64, 128],
+        # depth_list=[1,   2, 2,   2, 2],
         self.stages = []
         for w, d in zip(width_list[1:3], depth_list[1:3]):
             stage = []
@@ -90,6 +92,9 @@ class EfficientViTBackbone(nn.Module):
             self.stages.append(OpSequential(stage))
             self.width_list.append(in_channels)
 
+        # mid
+        # width_list=[8, 16, 32, 64, 128],
+        # depth_list=[1, 2, 2, 2, 2],
         for w, d in zip(width_list[3:], depth_list[3:]):
             stage = []
             block = self.build_local_block(
@@ -375,10 +380,44 @@ def efficientvit_backbone_l3(**kwargs) -> EfficientViTLargeBackbone:
     )
     return backbone
 
+
+class MyBlock(nn.Module):
+    def __init__(self, in_channels=128, out_channels=128, dim=32,
+                 expand_ratio=4, # 作用于build_local_block，用于选择 MBConv or DSConv
+                 norm="bn2d", act_func="hswish",fewer_norm=True,d=1,down=False):
+        super().__init__()
+        self.MBConv = MBConv(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            stride=2 if down else 1,
+            expand_ratio=expand_ratio,
+            use_bias=(True, True, False) if fewer_norm else False,
+            norm=(None, None, norm) if fewer_norm else norm,
+            act_func=(act_func, act_func, None),
+        )
+        self.EfficientVITBlocks  = nn.ModuleList([
+            EfficientViTBlock(
+                in_channels=in_channels,
+                dim=dim,
+                expand_ratio=expand_ratio,
+                norm=norm,
+                act_func=act_func) for _ in range(d)]
+        )
+    def forward(self, x):
+        x = self.MBConv(x)
+        for block in self.EfficientVITBlocks:
+            x = block(x)
+        return x
+
 if __name__ == '__main__':
+    '''
     model = efficientvit_backbone_b0()
-    x = torch.randn(1,3,1024,1024)
+    x = torch.randn(1,3,96,96)
     # dict_keys(['input', 'stage0', 'stage1', 'stage2', 'stage3', 'stage4', 'stage_final'])
     y_dict = model(x)
     for i in y_dict.keys():
         print(y_dict[i].shape)
+    '''
+    model = MyBlock()
+    x = torch.randn(1,128,32,32)
+    print(model(x).shape)

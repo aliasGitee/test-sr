@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 from basicsr.archs.msid import Upsamplers as Upsamplers
-from basicsr.archs.efficientvit.EFVIT import EFTBlocks
 
 
 class DepthWiseConv(nn.Module):
@@ -199,18 +198,18 @@ class AFD(nn.Module):
         self.rc = self.remaining_channels = in_channels
 
         self.c1_d = conv_block(in_channels, self.dc, 1, act_type=act_type)
-        self.c1_r = conv(in_channels, self.rc)
-        self.act = nn.Identity()#activation(act_type)
+        self.c1_r = conv(in_channels, self.rc, kernel_size=3,  **kwargs)
+        self.act = activation(act_type)
 
         self.c2_d = conv_block(self.remaining_channels, self.dc, 1, act_type=act_type)
-        self.c2_r = conv(self.remaining_channels, self.rc)
+        self.c2_r = conv(self.remaining_channels, self.rc, kernel_size=3,  **kwargs)
 
-        self.c3 = conv(self.remaining_channels, self.rc)
+        self.c3 = conv(self.remaining_channels, self.rc, kernel_size=5,  **{'padding': 2})
 
         self.c3_d = conv_block(self.remaining_channels, self.dc, 1, act_type=act_type)
-        self.c3_r = conv(self.remaining_channels, self.rc)
+        self.c3_r = conv(self.remaining_channels, self.rc, kernel_size=3, **kwargs)
 
-        self.c4 = conv(self.remaining_channels, self.dc)
+        self.c4 = conv(self.remaining_channels, self.dc, kernel_size=7, **{'padding': 3})
 
         self.c5 = nn.Conv2d(self.dc * 4, in_channels, 1)
 
@@ -237,19 +236,18 @@ class AFD(nn.Module):
         return out_fused
 
 
-class myfix1(nn.Module):
-    def __init__(self, num_in_ch=3, num_feat=128, num_block=10, num_out_ch=3, upscale=3,
-                 conv='EFTBlocks', upsampler='pixelshuffledirect', attn_shrink=0.25, act_type='gelu'):
-        super(myfix1, self).__init__()
+class MSID(nn.Module):
+    def __init__(self, num_in_ch=3, num_feat=56, num_block=10, num_out_ch=3, upscale=3,
+                 conv='BSConvU', upsampler='pixelshuffledirect', attn_shrink=0.25, act_type='gelu'):
+        super(MSID, self).__init__()
         kwargs = {'padding': 1}
         if conv == 'DepthWiseConv':
             self.conv = DepthWiseConv
         elif conv == 'BSConvU':
             self.conv = BSConvU
         else:
-            self.conv = EFTBlocks
-        self.conv0 = BSConvU
-        self.fea_conv = self.conv0(num_in_ch * 4, num_feat, kernel_size=3, **kwargs)
+            self.conv = nn.Conv2d
+        self.fea_conv = self.conv(num_in_ch * 4, num_feat, kernel_size=3, **kwargs)
 
         self.B1 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
         self.B2 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
@@ -264,7 +262,7 @@ class myfix1(nn.Module):
 
         self.c1 = nn.Conv2d(num_feat * num_block, num_feat, 1)
         self.GELU = nn.GELU()
-        self.c2 = self.conv0(num_feat, num_feat, kernel_size=3, **kwargs)
+        self.c2 = self.conv(num_feat, num_feat, kernel_size=3, **kwargs)
 
         if upsampler == 'pixelshuffledirect':
             self.upsampler = Upsamplers.PixelShuffleDirect(scale=upscale, num_feat=num_feat, num_out_ch=num_out_ch)
@@ -285,27 +283,22 @@ class myfix1(nn.Module):
         out_B3 = self.B3(out_B2)
         out_B4 = self.B4(out_B3)
         out_B5 = self.B5(out_B4)
-        # out_B6 = self.B6(out_B5)
-        # out_B7 = self.B7(out_B6)
-        # out_B8 = self.B8(out_B7)
-        # out_B9 = self.B9(out_B8)
-        # out_B10 = self.B10(out_B9)
+        out_B6 = self.B6(out_B5)
+        out_B7 = self.B7(out_B6)
+        out_B8 = self.B8(out_B7)
+        out_B9 = self.B9(out_B8)
+        out_B10 = self.B10(out_B9)
 
-        #out_B6, out_B7, out_B8, out_B9, out_B10
-        trunk = torch.cat([out_B1, out_B2, out_B3, out_B4, out_B5], dim=1)
+        trunk = torch.cat([out_B1, out_B2, out_B3, out_B4, out_B5, out_B6, out_B7, out_B8, out_B9, out_B10], dim=1)
         out_B = self.c1(trunk)
         out_B = self.GELU(out_B)
         out_lr = self.c2(out_B) + out_fea
         output = self.upsampler(out_lr)
         return output
 
-
-
-
-if __name__== '__main__':
+if __name__ == '__main__':
     import thop
     x = torch.randn(1, 3, 48, 48)
-    model = myfix1(num_feat=64,upscale=2,num_block=5)
+    model = MSID(upscale=2)
     total_ops, total_params = thop.profile(model,(x,))
     print(total_ops, ' ',total_params)
-    #print(model(x).shape)

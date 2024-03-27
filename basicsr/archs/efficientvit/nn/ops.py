@@ -33,6 +33,7 @@ __all__ = [
 #################################################################################
 
 
+# x -> dropout -> conv -> norm -> act -> y
 class ConvLayer(nn.Module):
     def __init__(
         self,
@@ -183,6 +184,7 @@ class DSConv(nn.Module):
         return x
 
 
+# x -> conv -> dwconv -> y
 class MBConv(nn.Module):
     def __init__(
         self,
@@ -348,8 +350,7 @@ class LiteMLA(nn.Module):
     ):
         super(LiteMLA, self).__init__()
         self.eps = eps
-        heads = heads or int(in_channels // dim * heads_ratio)
-
+        heads = heads or int(in_channels // dim * heads_ratio) # in_c//dim * 1.0 = 4
         total_dim = heads * dim
 
         use_bias = val2tuple(use_bias, 2)
@@ -357,6 +358,7 @@ class LiteMLA(nn.Module):
         act_func = val2tuple(act_func, 2)
 
         self.dim = dim
+        # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
         self.qkv = ConvLayer(
             in_channels,
             3 * total_dim,
@@ -365,6 +367,8 @@ class LiteMLA(nn.Module):
             norm=norm[0],
             act_func=act_func[0],
         )
+
+        # n个dwconv_scale*scale，点卷积融合头信息
         self.aggreg = nn.ModuleList(
             [
                 nn.Sequential(
@@ -399,6 +403,7 @@ class LiteMLA(nn.Module):
         if qkv.dtype == torch.float16:
             qkv = qkv.float()
 
+        # (b, -1, 3*dim, h*w)
         qkv = torch.reshape(
             qkv,
             (
@@ -408,7 +413,10 @@ class LiteMLA(nn.Module):
                 H * W,
             ),
         )
+        # (b, -1, h*w, 3*dim)
         qkv = torch.transpose(qkv, -1, -2)
+
+        # q,k,v: (b, -1, h*w, dim)
         q, k, v = (
             qkv[..., 0 : self.dim],
             qkv[..., self.dim : 2 * self.dim],
@@ -416,27 +424,32 @@ class LiteMLA(nn.Module):
         )
 
         # lightweight linear attention
+        # q -> relu(q)
         q = self.kernel_func(q)
         k = self.kernel_func(k)
 
         # linear matmul
+        # (q@k.T)@v
         trans_k = k.transpose(-1, -2)
-
         v = F.pad(v, (0, 1), mode="constant", value=1)
         kv = torch.matmul(trans_k, v)
         out = torch.matmul(q, kv)
         out = out[..., :-1] / (out[..., -1:] + self.eps)
 
+        # 恢复形状
         out = torch.transpose(out, -1, -2)
         out = torch.reshape(out, (B, -1, H, W))
+        # (b, out_c, h, w)
         return out
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # generate multi-scale q, k, v
         qkv = self.qkv(x)
         multi_scale_qkv = [qkv]
+        # [qkv, dwconv(qkv)]
         for op in self.aggreg:
             multi_scale_qkv.append(op(qkv))
+        # cat(qkv, dwconv(qkv))
         multi_scale_qkv = torch.cat(multi_scale_qkv, dim=1)
 
         out = self.relu_linear_att(multi_scale_qkv)
@@ -468,6 +481,7 @@ class EfficientViTBlock(nn.Module):
             ),
             IdentityLayer(),
         )
+
         local_module = MBConv(
             in_channels=in_channels,
             out_channels=in_channels,
@@ -488,7 +502,7 @@ class EfficientViTBlock(nn.Module):
 #                             Functional Blocks                                 #
 #################################################################################
 
-
+# x -> ?norm ->  f(x) -> ?x + f(x) -> ?act -> y
 class ResidualBlock(nn.Module):
     def __init__(
         self,
@@ -574,6 +588,16 @@ class OpSequential(nn.Module):
         return x
 
 if __name__ == '__main__':
-    model = EfficientViTBlock(in_channels=128,dim=32)
+    # model = EfficientViTBlock(in_channels=128,dim=32)
+    # x = torch.randn(1,128,192,192)
+    # print(model(x).shape)
+    model = LiteMLA(
+        in_channels=128,
+        out_channels=128,
+        heads_ratio=1.0,
+        dim=32,
+        norm=(None, "bn2d"),
+        scales=(5,),
+    )
     x = torch.randn(1,128,192,192)
     print(model(x).shape)
