@@ -7,6 +7,7 @@ from basicsr.archs import build_network
 from basicsr.losses import build_loss
 from basicsr.metrics import calculate_metric
 from basicsr.utils import get_root_logger, imwrite, tensor2img
+from basicsr.models import lr_scheduler
 from basicsr.utils.registry import MODEL_REGISTRY
 from .base_model import BaseModel
 
