@@ -22,7 +22,7 @@ datasets:
 
     # data loader
     num_worker_per_gpu: 3
-    batch_size_per_gpu: 16
+    batch_size_per_gpu: 4
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -52,15 +52,15 @@ train:
     type: Adam
     lr: !!float 1e-3
     weight_decay: 0
-    betas: [0.9, 0.99]
+    betas: [0.9, 0.999]
 
   scheduler:
     type: StepLR
-    step_size: 10000
+    step_size: 50000
     gamma: 0.5
     last_epoch: -1
 
-  total_iter: 50000
+  total_iter: 200000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -71,7 +71,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 500
+  val_freq: !!float 200
   save_img: false
 
   metrics:
@@ -82,7 +82,7 @@ val:
 
 # logging settings
 logger:
-  print_freq: 10
+  print_freq: 50
   save_checkpoint_freq: !!float 5e3
   use_tb_logger: true
   wandb:
