@@ -238,7 +238,7 @@ class AFD(nn.Module):
 
 
 class myfix1(nn.Module):
-    def __init__(self, num_in_ch=3, num_feat=128, num_block=10, num_out_ch=3, upscale=3,
+    def __init__(self, num_in_ch=3, num_feat=64, num_block=3, num_out_ch=3, upscale=2,
                  conv='EFTBlocks', upsampler='pixelshuffledirect', attn_shrink=0.25, act_type='gelu'):
         super(myfix1, self).__init__()
         kwargs = {'padding': 1}
