@@ -113,3 +113,4 @@ logger:
 dist_params:
   backend: nccl
   port: 29500
+# python basicsr/train.py -opt options/train/SAFMN/train_SAFMN_x2.yml

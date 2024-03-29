@@ -3,7 +3,10 @@ from torch import nn as nn
 from torch.nn import functional as F
 from basicsr.utils.registry import ARCH_REGISTRY
 from basicsr.archs.safmn.SAFMN import SAFMN as model
+from basicsr.utils.registry import ARCH_REGISTRY
 
+
+@ARCH_REGISTRY.register()
 class SAFMN(nn.Module):
     def __init__(self):
         super(SAFMN, self).__init__()
