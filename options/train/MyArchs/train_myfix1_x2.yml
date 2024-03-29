@@ -21,9 +21,9 @@ datasets:
     use_rot: true
 
     # data loader
-    num_worker_per_gpu: 3
-    batch_size_per_gpu: 4
-    dataset_enlarge_ratio: 1
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 16
+    dataset_enlarge_ratio: 10
     prefetch_mode: ~
 
   val:
@@ -71,18 +71,18 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 200
+  val_freq: !!float 500
   save_img: false
 
   metrics:
     psnr: # metric name, can be arbitrary
       type: calculate_psnr
       crop_border: 2
-      test_y_channel: false
+      test_y_channel: true
 
 # logging settings
 logger:
-  print_freq: 50
+  print_freq: 100
   save_checkpoint_freq: !!float 5e3
   use_tb_logger: true
   wandb:
