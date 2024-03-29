@@ -64,7 +64,12 @@ class SRModel(BaseModel):
         else:
             self.cri_perceptual = None
 
-        if self.cri_pix is None and self.cri_perceptual is None:
+        if train_opt.get('fft_opt'):
+            self.cri_fft = build_loss(train_opt['fft_opt']).to(self.device)
+        else:
+            self.cri_fft = None
+
+        if self.cri_pix is None and self.cri_perceptual and self.cri_fft is None:
             raise ValueError('Both pixel and perceptual losses are None.')
 
         # set up optimizers and schedulers
@@ -101,6 +106,13 @@ class SRModel(BaseModel):
             l_pix = self.cri_pix(self.output, self.gt)
             l_total += l_pix
             loss_dict['l_pix'] = l_pix
+
+         # frequency loss
+        if self.cri_fft:
+            l_fft = self.cri_fft(self.output, self.gt)
+            l_total += l_fft
+            loss_dict['l_freq'] = l_fft
+
         # perceptual loss
         if self.cri_perceptual:
             l_percep, l_style = self.cri_perceptual(self.output, self.gt)
