@@ -254,13 +254,13 @@ class myfix1(nn.Module):
         self.B1 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
         self.B2 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
         self.B3 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
-        self.B4 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
-        self.B5 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
-        self.B6 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
-        self.B7 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
-        self.B8 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
-        self.B9 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
-        self.B10 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type,attentionScale=4)
+        # self.B4 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
+        # self.B5 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
+        # self.B6 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
+        # self.B7 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
+        # self.B8 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
+        # self.B9 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
+        # self.B10 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type,attentionScale=4)
 
         self.c1 = nn.Conv2d(num_feat * num_block, num_feat, 1)
         self.GELU = nn.GELU()
@@ -283,16 +283,16 @@ class myfix1(nn.Module):
         out_B1 = self.B1(out_fea)
         out_B2 = self.B2(out_B1)
         out_B3 = self.B3(out_B2)
-        out_B4 = self.B4(out_B3)
-        out_B5 = self.B5(out_B4)
+        # out_B4 = self.B4(out_B3)
+        # out_B5 = self.B5(out_B4)
         # out_B6 = self.B6(out_B5)
         # out_B7 = self.B7(out_B6)
         # out_B8 = self.B8(out_B7)
         # out_B9 = self.B9(out_B8)
         # out_B10 = self.B10(out_B9)
 
-        #out_B6, out_B7, out_B8, out_B9, out_B10
-        trunk = torch.cat([out_B1, out_B2, out_B3, out_B4, out_B5], dim=1)
+        #out_B6, out_B7, out_B8, out_B9, out_B10, out_B4, out_B5
+        trunk = torch.cat([out_B1, out_B2, out_B3], dim=1)
         out_B = self.c1(trunk)
         out_B = self.GELU(out_B)
         out_lr = self.c2(out_B) + out_fea
@@ -305,7 +305,7 @@ class myfix1(nn.Module):
 if __name__== '__main__':
     import thop
     x = torch.randn(1, 3, 48, 48)
-    model = myfix1(num_feat=64,upscale=2,num_block=5)
+    model = myfix1(num_feat=64,upscale=2,num_block=3)
     total_ops, total_params = thop.profile(model,(x,))
     print(total_ops, ' ',total_params)
     #print(model(x).shape)
