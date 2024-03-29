@@ -263,7 +263,7 @@ class FFTLoss(nn.Module):
     def __init__(self, loss_weight=1.0, reduction='mean'):
         super(FFTLoss, self).__init__()
         self.loss_weight = loss_weight
-        self.criterion = torch.nn.L1r5Loss(reduction=reduction)
+        self.criterion = torch.nn.L1Loss(reduction=reduction)
 
     def forward(self, pred, target):
         pred_fft = torch.fft.rfft2(pred)
