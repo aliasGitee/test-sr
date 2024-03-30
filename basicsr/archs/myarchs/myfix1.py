@@ -116,7 +116,7 @@ class SAFM(nn.Module):
         self.n_levels = n_levels
 
         # Spatial Weighting
-        self.efvit = EfficientVITStages(in_channels=dim,dim=dim,down=True,num_stage=2,expand_ratio=3)
+        self.efvit = EfficientVITStages(in_channels=dim,dim=dim,down=True,num_stage=2,expand_ratio=3,norm="ln2d")
 
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim*3, dim, 1, 1, 0)
