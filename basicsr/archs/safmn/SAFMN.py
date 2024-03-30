@@ -148,10 +148,8 @@ class AttBlock(nn.Module):
         x = self.ccm(self.norm2(x)) + x
         return x
 
-
-@ARCH_REGISTRY.register()
-class SAFMN(nn.Module):
-    def __init__(self, dim, n_blocks=8, ffn_scale=2.0, upscaling_factor=4):
+class safmn(nn.Module):
+    def __init__(self, dim=36, n_blocks=8, ffn_scale=2.0, upscaling_factor=2):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
 
@@ -170,18 +168,9 @@ class SAFMN(nn.Module):
 
 
 
-if __name__== '__main__':
-    #############Test Model Complexity #############
-    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    # x = torch.randn(1, 3, 640, 360)
-    # x = torch.randn(1, 3, 427, 240)
-    x = torch.randn(1, 3, 320, 180)
-    # x = torch.randn(1, 3, 256, 256)
-
-    model = SAFMN(dim=36, n_blocks=8, ffn_scale=2.0, upscaling_factor=4)
-    # model = SAFMN(dim=36, n_blocks=12, ffn_scale=2.0, upscaling_factor=2)
-    print(model)
-    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
-    output = model(x)
-    print(output.shape)
+if __name__ == '__main__':
+    import thop
+    model = safmn()
+    x = torch.randn(1,3,48,48)
+    total_ops, total_params = thop.profile(model, (x,))
+    print(total_ops,' ',total_params)
