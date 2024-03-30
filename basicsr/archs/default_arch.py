@@ -1,4 +1,4 @@
-from basicsr.archs.myarchs import myfix2
+from basicsr.archs.myarchs.myfix2 import myfix2
 import torch
 import torch.nn as nn
 from basicsr.utils.registry import ARCH_REGISTRY
