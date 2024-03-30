@@ -85,28 +85,28 @@ class MBConv(nn.Module):
 class CCM(nn.Module):
     def __init__(self, dim, growth_rate=2.0):
         super().__init__()
-        hidden_dim = dim#int(dim * growth_rate)
+        hidden_dim = int(dim * growth_rate)
 
-        # self.ccm = nn.Sequential(
-        #     nn.Conv2d(dim, hidden_dim, 3, 1, 1),
-        #     nn.GELU(),
-        #     nn.Conv2d(hidden_dim, dim, 1, 1, 0)
-        # )
         self.ccm = nn.Sequential(
-            nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=1,stride=1,groups=1),
-            nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,stride=1,padding=1,groups=dim),
-            nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,stride=1,padding=2,dilation=2,groups=dim),
-            nn.GELU()
+            nn.Conv2d(dim, hidden_dim, 3, 1, 1),
+            nn.GELU(),
+            nn.Conv2d(hidden_dim, dim, 1, 1, 0)
         )
-        self.pw = nn.Sequential(
-            nn.Conv2d(in_channels=hidden_dim,out_channels=dim,kernel_size=1,stride=1,groups=1),
-            nn.GELU()
-            )
+        # self.ccm = nn.Sequential(
+        #     nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=1,stride=1,groups=1),
+        #     nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,stride=1,padding=1,groups=dim),
+        #     nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,stride=1,padding=2,dilation=2,groups=dim),
+        #     nn.GELU()
+        # )
+        # self.pw = nn.Sequential(
+        #     nn.Conv2d(in_channels=hidden_dim,out_channels=dim,kernel_size=1,stride=1,groups=1),
+        #     nn.GELU()
+        #     )
 
     def forward(self, x):
-        x = self.pw(x + self.ccm(x))
+        #x = self.pw(x + self.ccm(x))
 
-        return x#self.ccm(x)
+        return self.ccm(x)
 
 
 # SAFM
