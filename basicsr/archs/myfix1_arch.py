@@ -9,7 +9,7 @@ class MyFix1(nn.Module):
     def __init__(self,upscaling_factor):
         super(MyFix1, self).__init__()
 
-        self.model = myarchs(num_feat=64,num_block=3,upscale=upscaling_factor)
+        self.model = myarchs(dim=16,upscaling_factor=upscaling_factor)
 
     def forward(self,img_lr):
         img_sr = self.model(img_lr)
