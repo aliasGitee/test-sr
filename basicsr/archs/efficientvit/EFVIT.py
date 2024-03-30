@@ -59,9 +59,9 @@ class EfficientVITStages(nn.Module):
         self.Stages = nn.ModuleList(self.stage_list)
         #self.conv1 = ConvLayer(in_channels=self.in_c*4, out_channels=self.in_c)
 
-        self.conv1_stage2 = ConvLayer(in_channels=self.in_c, out_channels=self.in_c,norm='ln2d')
-        self.conv1_stage3 = ConvLayer(in_channels=self.in_c*2, out_channels=self.in_c,norm='ln2d')
-        self.conv1_stage4 = ConvLayer(in_channels=self.in_c*4, out_channels=self.in_c,norm='ln2d')
+        self.conv1_stage2 = ConvLayer(in_channels=self.in_c, out_channels=self.in_c,norm='ln')
+        self.conv1_stage3 = ConvLayer(in_channels=self.in_c*2, out_channels=self.in_c,norm='ln')
+        self.conv1_stage4 = ConvLayer(in_channels=self.in_c*4, out_channels=self.in_c,norm='ln')
         self.upsample_stage3 = UpSampleLayer(factor=2**(num_stage-1))
         self.upsample_stage4 = UpSampleLayer(factor=2**num_stage)
     def forward(self, x):
