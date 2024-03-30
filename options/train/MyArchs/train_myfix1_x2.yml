@@ -43,6 +43,7 @@ datasets:
 network_g:
   type: MyFix1
   dim: 16
+  n_blocks: 3
   upscaling_factor: 2
 
 # path

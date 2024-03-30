@@ -116,7 +116,7 @@ class SAFM(nn.Module):
         self.n_levels = n_levels
 
         # Spatial Weighting
-        self.efvit = EfficientVITStages(in_channels=dim,dim=dim,down=True,num_stage=2)
+        self.efvit = EfficientVITStages(in_channels=dim,dim=dim,down=True,num_stage=2,expand_ratio=3)
 
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim*3, dim, 1, 1, 0)
@@ -148,7 +148,7 @@ class AttBlock(nn.Module):
         return x
 
 class myfix1(nn.Module):
-    def __init__(self, dim=16, n_blocks=4, ffn_scale=2.0, upscaling_factor=2):
+    def __init__(self, dim=16, n_blocks=3, ffn_scale=2.0, upscaling_factor=2):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
 
