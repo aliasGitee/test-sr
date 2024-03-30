@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import OrderedDict
-from basicsr.archs.msid import Upsamplers as Upsamplers
-from basicsr.archs.efficientvit.EFVIT import EfficientVITStages
+from torchvision import ops
+from basicsr.archs.efficientvit.EFVIT import EfficientViTBlock
 
 
 # Layer Norm
@@ -92,20 +91,8 @@ class CCM(nn.Module):
             nn.GELU(),
             nn.Conv2d(hidden_dim, dim, 1, 1, 0)
         )
-        # self.ccm = nn.Sequential(
-        #     nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=1,stride=1,groups=1),
-        #     nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,stride=1,padding=1,groups=dim),
-        #     nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,stride=1,padding=2,dilation=2,groups=dim),
-        #     nn.GELU()
-        # )
-        # self.pw = nn.Sequential(
-        #     nn.Conv2d(in_channels=hidden_dim,out_channels=dim,kernel_size=1,stride=1,groups=1),
-        #     nn.GELU()
-        #     )
 
     def forward(self, x):
-        #x = self.pw(x + self.ccm(x))
-
         return self.ccm(x)
 
 
@@ -114,19 +101,38 @@ class SAFM(nn.Module):
     def __init__(self, dim, n_levels=4):
         super().__init__()
         self.n_levels = n_levels
+        chunk_dim = dim // n_levels
 
         # Spatial Weighting
-        self.efvit = EfficientVITStages(in_channels=dim,dim=dim,down=True,num_stage=2,expand_ratio=4,norm="ln2d")
+        #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
+        self.mfr = nn.ModuleList([EfficientViTBlock(in_channels=chunk_dim,
+                dim=chunk_dim//4,
+                expand_ratio=4,
+                norm="ln2d",
+                act_func="hswish") for _ in range(self.n_levels)])
 
         # # Feature Aggregation
-        self.aggr = nn.Conv2d(dim*3, dim, 1, 1, 0)
+        self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
 
         # Activation
         self.act = nn.GELU()
 
     def forward(self, x):
-        xc = self.efvit(x)
-        out = self.aggr(xc)
+        h, w = x.size()[-2:]
+
+        xc = x.chunk(self.n_levels, dim=1)
+        out = []
+        for i in range(self.n_levels):
+            if i > 0:
+                p_size = (h//2**i, w//2**i)
+                s = F.adaptive_max_pool2d(xc[i], p_size)
+                s = self.mfr[i](s)
+                s = F.interpolate(s, size=(h, w), mode='nearest')
+            else:
+                s = self.mfr[i](xc[i])
+            out.append(s)
+
+        out = self.aggr(torch.cat(out, dim=1))
         out = self.act(out) * x
         return out
 
@@ -148,7 +154,7 @@ class AttBlock(nn.Module):
         return x
 
 class myfix1(nn.Module):
-    def __init__(self, dim=16, n_blocks=3, ffn_scale=2.0, upscaling_factor=2):
+    def __init__(self, dim=36, n_blocks=8, ffn_scale=2.0, upscaling_factor=2):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
 
@@ -167,10 +173,9 @@ class myfix1(nn.Module):
 
 
 
-if __name__== '__main__':
+if __name__ == '__main__':
     import thop
-    x = torch.randn(1, 3, 48, 48)
-    model = myfix1(dim=16)
-    total_ops, total_params = thop.profile(model,(x,))
-    print(total_ops, ' ',total_params)
-    #print(model(x).shape)
+    model = myfix1()
+    x = torch.randn(1,3,48,48)
+    total_ops, total_params = thop.profile(model, (x,))
+    print(total_ops,' ',total_params)
