@@ -599,5 +599,7 @@ if __name__ == '__main__':
         norm=(None, "bn2d"),
         scales=(5,),
     )
-    x = torch.randn(1,128,192,192)
-    print(model(x).shape)
+    x = torch.randn(1,128,12,12)
+    import thop
+    total_ops, total_params = thop.profile(model, (x,))
+    print(total_ops,' ', total_params)
