@@ -174,3 +174,7 @@ if __name__ == '__main__':
     x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
+
+    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
