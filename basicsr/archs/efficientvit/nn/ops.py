@@ -444,12 +444,14 @@ class LiteMLA(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # generate multi-scale q, k, v
+        # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
         qkv = self.qkv(x)
         multi_scale_qkv = [qkv]
+
         # [qkv, dwconv(qkv)]
         for op in self.aggreg:
             multi_scale_qkv.append(op(qkv))
-        # cat(qkv, dwconv(qkv))
+        # cat(qkv, dwconv(qkv)) -> (b,6*c,h,w)
         multi_scale_qkv = torch.cat(multi_scale_qkv, dim=1)
 
         out = self.relu_linear_att(multi_scale_qkv)
