@@ -91,9 +91,12 @@ class CCM(nn.Module):
 
         self.ccm = nn.Sequential(
             #nn.Conv2d(dim, hidden_dim, 3, 1, 1),
-            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=1,groups=1, bias=False),
+            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=1,groups=1),
             nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
             nn.GELU(),
+
+            nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=2,dilation=2,groups=hidden_dim),
+
             nn.Conv2d(hidden_dim, dim, 1, 1, 0)
         )
 
@@ -185,6 +188,6 @@ if __name__ == '__main__':
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
 
-    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

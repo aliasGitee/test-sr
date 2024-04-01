@@ -299,7 +299,7 @@ class EFTAB(nn.Module):
         out = self.c5(out)
         # out_fused = self.esa(out)
         # out_fused = self.cca(out_fused)
-        out = F.relu(out)*input
+        out = F.gelu(out)*input
         return out
 
 
