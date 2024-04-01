@@ -91,17 +91,21 @@ class CCM(nn.Module):
 
         self.ccm = nn.Sequential(
             #nn.Conv2d(dim, hidden_dim, 3, 1, 1),
+            nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=3, padding=1, groups=dim),
+            nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=1),
             nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=1,groups=1),
-            nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
+            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=3,padding=2,groups=dim,dilation=2),
+            #nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
             nn.GELU(),
-
-            nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=2,dilation=2,groups=hidden_dim),
-
-            nn.Conv2d(hidden_dim, dim, 1, 1, 0)
+            # nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=2,dilation=2,groups=hidden_dim),
+            # nn.Conv2d(hidden_dim, dim, 1, 1, 0)
+        )
+        self.ccm2 = nn.Sequential(
+            nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=1)
         )
 
     def forward(self, x):
-        return self.ccm(x)
+        return self.ccm2(self.ccm(x) + x)
 
 class CCCM(nn.Module):
     def __init__(self, dim, growth_rate=2.0):
@@ -211,7 +215,7 @@ class AttBlock(nn.Module):
         # Multiscale Block
         self.safm = SAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim, ffn_scale)
+        self.ccm = CCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
