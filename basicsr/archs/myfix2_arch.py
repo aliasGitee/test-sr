@@ -1,6 +1,6 @@
 import torch.nn.functional as F
 from torch import nn
-from basicsr.archs.myarchs.myfix1 import myfix1 as myarchs
+from basicsr.archs.myarchs.myfix2 import myfix2 as myarchs
 from basicsr.utils.registry import ARCH_REGISTRY
 
 
