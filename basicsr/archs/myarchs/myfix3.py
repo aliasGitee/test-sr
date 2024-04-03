@@ -98,17 +98,14 @@ class CCM(nn.Module):
 class CCCM(nn.Module):
     def __init__(self, dim):
         super().__init__()
-        #hidden_dim = int(dim * growth_rate)
-
-        # self.ccm = nn.Sequential(
-        #     nn.Conv2d(dim, hidden_dim, 3, 1, 1),
-        #     nn.GELU(),
-        #     nn.Conv2d(hidden_dim, dim, 1, 1, 0)
-        # )
-        self.ba = BA(dim=dim,n_win=8,num_heads=4)
+        self.dwconv = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim)
+        self.pwconv = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=1)
+        self.act = nn.GELU()
 
     def forward(self, x):
-        return (self.ba(x.permute(0, 2, 3, 1))).permute(0, 3, 1, 2) #self.ccm(x)
+        x = x + self.act(self.dwconv(x))
+        x = self.act(self.pwconv(x))
+        return x
 
 # SAFM
 class SAFM(nn.Module):
