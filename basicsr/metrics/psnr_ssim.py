@@ -234,35 +234,35 @@ from basicsr.archs.esrt.utils import compute_psnr,compute_ssim
 from basicsr.archs.esrt import utils
 import skimage.color as sc
 @METRIC_REGISTRY.register()
-def c_ssim(im1, im2, crop_border, input_order='HWC', test_y_channel=False):
-    assert im1.shape == im2.shape, (f'Image shapes are different: {im1.shape}, {im2.shape}.')
+def c_ssim(img, img2, crop_border, input_order='HWC', test_y_channel=False):
+    assert img.shape == img2.shape, (f'Image shapes are different: {img.shape}, {img2.shape}.')
     if input_order not in ['HWC', 'CHW']:
         raise ValueError(f'Wrong input_order {input_order}. Supported input_orders are "HWC" and "CHW"')
-    im1 = reorder_image(im1, input_order=input_order)
-    im2 = reorder_image(im2, input_order=input_order)
+    img = reorder_image(img, input_order=input_order)
+    img2 = reorder_image(img2, input_order=input_order)
 
     if crop_border != 0:
-        im1 = im1[crop_border:-crop_border, crop_border:-crop_border, ...]
-        im2 = im2[crop_border:-crop_border, crop_border:-crop_border, ...]
+        img = img[crop_border:-crop_border, crop_border:-crop_border, ...]
+        img2 = img2[crop_border:-crop_border, crop_border:-crop_border, ...]
     if test_y_channel:
-        im2 = utils.quantize(sc.rgb2ycbcr(im2)[:, :, 0])
-        im1 = utils.quantize(sc.rgb2ycbcr(im1)[:, :, 0])
-    s = compute_ssim(im1, im2)
+        img2 = utils.quantize(sc.rgb2ycbcr(img2)[:, :, 0])
+        img = utils.quantize(sc.rgb2ycbcr(img)[:, :, 0])
+    s = compute_ssim(img, img2)
     return s
 
 @METRIC_REGISTRY.register()
-def c_psnr(im1, im2, crop_border, input_order='HWC', test_y_channel=False):
-    assert im1.shape == im2.shape, (f'Image shapes are different: {im1.shape}, {im2.shape}.')
+def c_psnr(img, img2, crop_border, input_order='HWC', test_y_channel=False):
+    assert img.shape == img2.shape, (f'Image shapes are different: {img.shape}, {img2.shape}.')
     if input_order not in ['HWC', 'CHW']:
         raise ValueError(f'Wrong input_order {input_order}. Supported input_orders are "HWC" and "CHW"')
-    im1 = reorder_image(im1, input_order=input_order)
-    im2 = reorder_image(im2, input_order=input_order)
+    img = reorder_image(img, input_order=input_order)
+    img2 = reorder_image(img2, input_order=input_order)
 
     if crop_border != 0:
-        im1 = im1[crop_border:-crop_border, crop_border:-crop_border, ...]
-        im2 = im2[crop_border:-crop_border, crop_border:-crop_border, ...]
+        img = img[crop_border:-crop_border, crop_border:-crop_border, ...]
+        img2 = img2[crop_border:-crop_border, crop_border:-crop_border, ...]
     if test_y_channel:
-        im2 = utils.quantize(sc.rgb2ycbcr(im2)[:, :, 0])
-        im1 = utils.quantize(sc.rgb2ycbcr(im1)[:, :, 0])
-    p = compute_psnr(im1,im2)
+        img2 = utils.quantize(sc.rgb2ycbcr(img2)[:, :, 0])
+        img = utils.quantize(sc.rgb2ycbcr(img)[:, :, 0])
+    p = compute_psnr(img,img2)
     return p
