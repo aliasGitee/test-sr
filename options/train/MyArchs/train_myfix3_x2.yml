@@ -40,7 +40,7 @@ datasets:
     filename_tmpl: "{}"
     io_backend:
       type: disk
-    val_img_size_mod: 4
+    val_img_size_mod: 8
 
 # network structures
 network_g:

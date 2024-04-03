@@ -103,8 +103,9 @@ class CCCM(nn.Module):
 
         # Spatial Weighting
         #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
-        self.mfr = nn.ModuleList([BA(dim=chunk_dim,n_win=3,num_heads=4)
-                                  for _ in range(self.n_levels)])
+        win_list = [8,8,4,4]
+        self.mfr = nn.ModuleList([BA(dim=chunk_dim,n_win=win_list[i],num_heads=4)
+                                  for i in range(self.n_levels)])
 
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
@@ -213,7 +214,7 @@ class myfix3(nn.Module):
 if __name__ == '__main__':
     import thop
     model = myfix3(dim=64)
-    x = torch.randn(1,3,48,48)
+    x = torch.randn(1,3,64,64)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
 
