@@ -112,12 +112,13 @@ class CCCM(nn.Module):
             nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
             nn.GELU(),
             EVTB(in_channels=hidden_dim,dim=hidden_dim//2,scales=(3,5,)),
-            nn.Conv2d(hidden_dim,dim,1)
+            nn.Conv2d(hidden_dim,dim,1),
+            nn.GELU()
         )
         #self.evtb = EVTB()
 
     def forward(self, x):
-        return self.ccm(x)
+        return x*self.ccm(x)
 
 
 # SAFM
