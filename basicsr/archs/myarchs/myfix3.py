@@ -185,7 +185,7 @@ class AttBlock(nn.Module):
         return x
 
 class myfix3(nn.Module):
-    def __init__(self, dim=36, n_blocks=8, ffn_scale=2.0, upscaling_factor=2):
+    def __init__(self, dim=36, n_blocks=8, ffn_scale=0.5, upscaling_factor=2):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
 
