@@ -183,7 +183,7 @@ class myfix2(nn.Module):
 if __name__ == '__main__':
     import thop
     model = myfix2(dim=36)
-    x = torch.randn(1,3,48,48)
+    x = torch.randn(1,3,64,64)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
 
