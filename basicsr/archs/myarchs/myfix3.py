@@ -96,43 +96,19 @@ class CCM(nn.Module):
         return self.ccm(x)
 
 class CCCM(nn.Module):
-    def __init__(self, dim, n_levels=4):
+    def __init__(self, dim):
         super().__init__()
-        self.n_levels = n_levels
-        chunk_dim = dim // n_levels
+        #hidden_dim = int(dim * growth_rate)
 
-        # Spatial Weighting
-        #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
-        win_list = [8,8,4,4]
-        self.mfr = nn.ModuleList([BA(dim=chunk_dim,n_win=win_list[i],num_heads=4)
-                                  for i in range(self.n_levels)])
-
-        # # Feature Aggregation
-        self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
-
-        # Activation
-        self.act = nn.GELU()
-
-        #self.ba = BA(dim=chunk_dim,n_win=2,num_heads=3)
+        # self.ccm = nn.Sequential(
+        #     nn.Conv2d(dim, hidden_dim, 3, 1, 1),
+        #     nn.GELU(),
+        #     nn.Conv2d(hidden_dim, dim, 1, 1, 0)
+        # )
+        self.ba = BA(dim=dim,n_win=8,num_heads=4)
 
     def forward(self, x):
-        h, w = x.size()[-2:]
-
-        xc = x.chunk(self.n_levels, dim=1)
-        out = []
-        for i in range(self.n_levels):
-            if i > 0:
-                p_size = (h//2**i, w//2**i)
-                s = F.adaptive_avg_pool2d(xc[i], p_size)
-                s = self.mfr[i](s.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-                s = F.interpolate(s, size=(h, w), mode='nearest')
-            else:
-                s = self.mfr[i](xc[i].permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-            out.append(s)
-
-        out = self.aggr(torch.cat(out, dim=1))
-        out = self.act(out) * x
-        return out
+        return (self.ba(x.permute(0, 2, 3, 1))).permute(0, 3, 1, 2) #self.ccm(x)
 
 # SAFM
 class SAFM(nn.Module):
@@ -144,7 +120,7 @@ class SAFM(nn.Module):
         # Spatial Weighting
         #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
         self.mfr = nn.ModuleList([EfficientViTBlock(in_channels=chunk_dim,
-                dim=chunk_dim//4,
+                dim=chunk_dim//3,
                 expand_ratio=4,
                 norm="ln2d",
                 act_func="hswish") for _ in range(self.n_levels)])
@@ -213,7 +189,7 @@ class myfix3(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    model = myfix3(dim=64)
+    model = myfix3(dim=36)
     x = torch.randn(1,3,64,64)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
