@@ -1,7 +1,7 @@
 # general settings
 # Claculate on 720P
 # Params: 0.228M, FLOPs: 51.532G, Activations: 299M
-name: train_DefaultArch_x2
+name: train_MyFix3_x2
 model_type: SRModel
 scale: 2
 num_gpu: 1 # set num_gpu: 0 for cpu mode
@@ -12,21 +12,21 @@ datasets:
   train:
     name: DIV2K
     type: PairedImageDataset
-    dataroot_gt: datasets/DIV2K/DIV2K_train_HR
-    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic/X2
-    filename_tmpl: "{}x2"
+    dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub.lmdb
+    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_X2_sub.lmdb
+    filename_tmpl: "{}"
     io_backend:
-      type: disk
+      type: lmdb
 
-    gt_size: 96
+    gt_size: 128
     use_hflip: true
     use_rot: true
 
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 8
-    dataset_enlarge_ratio: 1
+    batch_size_per_gpu: 64
+    dataset_enlarge_ratio: 10
     prefetch_mode: ~
 
   # we use multiple validation datasets. The SR benchmark datasets can be download from: https://cv.snu.ac.kr/research/EDSR/benchmark.tar
@@ -42,7 +42,10 @@ datasets:
 
 # network structures
 network_g:
-  type: DefaultArch
+  type: MyFix3
+  dim: 64
+  n_blocks: 8
+  upscaling_factor: 2
 
 # path
 path:

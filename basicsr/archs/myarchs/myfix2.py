@@ -5,6 +5,10 @@ from torchvision import ops
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock
 from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
 
+'''
+[x0,x1,x2,x3]，x0后面先经过BA，再经过EFB，其他不变，有提升，但是显存占用大
+668021152.0   297948.0
+'''
 
 # Layer Norm
 class LayerNorm(nn.Module):
@@ -183,7 +187,7 @@ class myfix2(nn.Module):
 if __name__ == '__main__':
     import thop
     model = myfix2(dim=36)
-    x = torch.randn(1,3,64,64)
+    x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
 

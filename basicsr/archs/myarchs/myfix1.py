@@ -4,7 +4,20 @@ import torch.nn.functional as F
 from torchvision import ops
 from basicsr.archs.efficientvit.EFVIT import EfficientViTBlock
 
-
+'''
+每个maxpool后面加上一个effcientblock，有提升
+561313152.0   289452.0
+Set5
+	psnr: 38.0131/37.9654  ssim: 0.9610/0.9611
+Set14
+	psnr: 33.5677/33.5346  ssim: 0.9176/0.9176
+B100
+	psnr: 32.1794/32.1559  ssim: 0.9004/0.9001
+Urban100
+	psnr: 32.0426/31.8995  ssim: 0.9267/0.9258
+Manga109
+	psnr: 38.7442/38.5548  ssim: 0.9773/0.9770
+'''
 # Layer Norm
 class LayerNorm(nn.Module):
     def __init__(self, normalized_shape, eps=1e-6, data_format="channels_first"):
