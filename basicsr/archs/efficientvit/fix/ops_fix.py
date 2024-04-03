@@ -11,6 +11,8 @@ from basicsr.archs.efficientvit.nn.act import build_act
 from basicsr.archs.efficientvit.nn.norm import build_norm
 from basicsr.archs.efficientvit.utils import get_same_padding, list_sum, resize, val2list, val2tuple
 
+from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
+
 __all__ = [
     "ConvLayer",
     "UpSampleLayer",
@@ -20,7 +22,7 @@ __all__ = [
     "MBConv",
     "FusedMBConv",
     "ResBlock",
-    "LiteMLA",
+    "LiteMLAFix",
     "EfficientViTBlock",
     "ResidualBlock",
     "DAGBlock",
@@ -330,8 +332,7 @@ class ResBlock(nn.Module):
         x = self.conv2(x)
         return x
 
-# in_c:9, dim:9//3
-class LiteMLA(nn.Module):
+class LiteMLAFix(nn.Module):
     r"""Lightweight multi-scale linear attention"""
 
     def __init__(
@@ -348,7 +349,7 @@ class LiteMLA(nn.Module):
         scales: tuple[int, ...] = (5,),
         eps=1.0e-15,
     ):
-        super(LiteMLA, self).__init__()
+        super(LiteMLAFix, self).__init__()
         self.eps = eps
         heads = heads or int(in_channels // dim * heads_ratio) # in_c//dim * 1.0 = 4
         total_dim = heads * dim
@@ -367,8 +368,8 @@ class LiteMLA(nn.Module):
             norm=norm[0],
             act_func=act_func[0],
         )
-
-        # n个dwconv_scale*scale，点卷积融合头信息
+        # 首先聚合每个序列空间位置上相邻的信息
+        # 然后对每个dim做一次独立的全连接运算
         self.aggreg = nn.ModuleList(
             [
                 nn.Sequential(
@@ -397,15 +398,16 @@ class LiteMLA(nn.Module):
         )
 
     @autocast(enabled=False)
+    # 假设in_c=12，乘以3就是36，假设dim=3，dim表示划分qkv、划分头后的向量维度，那heads就是4
+    # 输入(b, 36, h, w)，输出(b, 36, h, w)
     def relu_linear_att(self, qkv: torch.Tensor) -> torch.Tensor:
-        # qkv : (b, in_c*6, h, w)
+        # qkv : (b, 36, h, w)
         B, _, H, W = list(qkv.size())
 
         if qkv.dtype == torch.float16:
             qkv = qkv.float()
 
-        # 聚合信息
-        # (b, -1, 3*dim, h*w)
+        # (b, heads:4, 3*dim, len_seq:h*w)
         qkv = torch.reshape(
             qkv,
             (
@@ -415,7 +417,7 @@ class LiteMLA(nn.Module):
                 H * W,
             ),
         )
-        # (b, -1, h*w, 3*dim)
+        # (b, heads:4, len_seq:h*w, 3*dim)
         qkv = torch.transpose(qkv, -1, -2)
 
         # q,k,v: (b, -1, h*w, dim)
@@ -441,26 +443,27 @@ class LiteMLA(nn.Module):
         # 恢复形状
         out = torch.transpose(out, -1, -2)
         out = torch.reshape(out, (B, -1, H, W))
-        # (b, out_c, h, w)
+        # (b, 36, h, w)
         return out
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # generate multi-scale q, k, v
         # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
         qkv = self.qkv(x)
-        multi_scale_qkv = [qkv]
 
-        # [qkv, dwconv(qkv)]
+        multi_scale_qkv = [qkv]
         for op in self.aggreg:
             multi_scale_qkv.append(op(qkv))
+
+        out_list = []
+        for elem in multi_scale_qkv:
+            out = self.relu_linear_att(elem)
+            out_list.append(out)
+
         # cat(qkv, dwconv(qkv)) -> (b,6*c,h,w)
-        multi_scale_qkv = torch.cat(multi_scale_qkv, dim=1)
-
-        out = self.relu_linear_att(multi_scale_qkv)
+        out = torch.cat(out_list, dim=1)
         out = self.proj(out)
-
         return out
-
 
 class EfficientViTBlock(nn.Module):
     def __init__(
@@ -475,7 +478,7 @@ class EfficientViTBlock(nn.Module):
     ):
         super(EfficientViTBlock, self).__init__()
         self.context_module = ResidualBlock(
-            LiteMLA(
+            LiteMLAFix(
                 in_channels=in_channels,
                 out_channels=in_channels,
                 heads_ratio=heads_ratio,
@@ -595,7 +598,7 @@ if __name__ == '__main__':
     # model = EfficientViTBlock(in_channels=128,dim=32)
     # x = torch.randn(1,128,192,192)
     # print(model(x).shape)
-    model = LiteMLA(
+    model = LiteMLAFix(
         in_channels=128,
         out_channels=128,
         heads_ratio=1.0,
@@ -608,5 +611,3 @@ if __name__ == '__main__':
     # import thop
     # total_ops, total_params = thop.profile(model, (x,))
     # print(total_ops,' ', total_params)
-
-

@@ -180,6 +180,6 @@ if __name__ == '__main__':
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
 
-    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

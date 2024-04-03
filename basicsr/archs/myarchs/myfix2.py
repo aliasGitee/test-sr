@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import ops
-from basicsr.archs.efficientvit.EFVIT import EfficientViTBlock
+from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock
 
 
 # Layer Norm
@@ -81,88 +81,19 @@ class MBConv(nn.Module):
 
 
 # CCM
-'''
-change: 换成BSConv
-'''
 class CCM(nn.Module):
     def __init__(self, dim, growth_rate=2.0):
         super().__init__()
         hidden_dim = int(dim * growth_rate)
 
         self.ccm = nn.Sequential(
-            #nn.Conv2d(dim, hidden_dim, 3, 1, 1),
-            nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=3, padding=1, groups=dim),
-            nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=1),
-            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=1,groups=1),
-            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=3,padding=2,groups=dim,dilation=2),
-            #nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
+            nn.Conv2d(dim, hidden_dim, 3, 1, 1),
             nn.GELU(),
-            # nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=2,dilation=2,groups=hidden_dim),
-            # nn.Conv2d(hidden_dim, dim, 1, 1, 0)
-        )
-        self.ccm2 = nn.Sequential(
-            nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=1)
+            nn.Conv2d(hidden_dim, dim, 1, 1, 0)
         )
 
     def forward(self, x):
-        return self.ccm2(self.ccm(x) + x)
-
-class CCCM(nn.Module):
-    def __init__(self, dim, growth_rate=2.0):
-        super().__init__()
-        self.n_levels = 3
-        hidden_dim = int(dim * growth_rate)
-        chunk_dim = hidden_dim // self.n_levels
-
-        self.ccm = nn.Sequential(
-            #nn.Conv2d(dim, hidden_dim, 3, 1, 1),
-            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=1,groups=1),
-            nn.Conv2d(in_channels=hidden_dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
-            nn.GELU()
-            )
-
-        self.mfr = nn.ModuleList([
-            nn.Sequential(
-                nn.Conv2d(in_channels=chunk_dim,out_channels=chunk_dim,kernel_size=3,padding=i+1,dilation=i+1,groups=chunk_dim),
-                # nn.Conv2d(in_channels=chunk_dim, out_channels=chunk_dim,kernel_size=1),
-                # nn.ReLU()
-                ) for i in range(self.n_levels)])
-
-        # # Feature Aggregation
-        self.aggr = nn.Conv2d(hidden_dim, dim, 1, 1, 0)
-        # Activation
-        self.act = nn.Identity() #nn.GELU()
-    def ChannelShuffle(self,x,groups):
-        batch_size, num_channels, height, width = x.size()
-        # 将通道分成groups个组
-        channels_per_group = num_channels // groups
-        # 将输入张量重塑为(batch_size, groups, channels_per_group, height, width)的形状
-        x = x.view(batch_size, groups, channels_per_group, height, width)
-        # 交换通道组的顺序
-        x = torch.transpose(x, 1, 2).contiguous()
-        # 将张量恢复为原始形状
-        x = x.view(batch_size, -1, height, width)
-        return x
-
-    def forward(self, x):
-        x = self.ccm(x)
-        _,c,_,_ = x.shape
-        #x = self.ChannelShuffle(x,c//6)
-        xc = x.chunk(self.n_levels, dim=1)
-        out = []
-        for i in range(self.n_levels):
-            if i > 0:
-                #p_size = (h//2**i, w//2**i)
-                #s = F.adaptive_max_pool2d(xc[i], p_size)
-                s = self.mfr[i](s)
-                #s = F.interpolate(s, size=(h, w), mode='nearest')
-            else:
-                s = self.mfr[i](xc[i])
-            out.append(s)
-
-        out = self.aggr(torch.cat(out, dim=1))
-        out = self.act(out)
-        return out
+        return self.ccm(x)
 
 
 # SAFM

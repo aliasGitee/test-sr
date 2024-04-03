@@ -13,7 +13,7 @@ datasets:
     name: DIV2K
     type: PairedImageDataset
     dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
-    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_sub/X2_sub
+    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic/X2_sub
     filename_tmpl: "{}"
     io_backend:
       type: disk
