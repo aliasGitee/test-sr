@@ -80,11 +80,11 @@ val:
 
   metrics:
     psnr: # metric name, can be arbitrary
-      type: calculate_psnr
+      type: c_psnr
       crop_border: 2
       test_y_channel: true
     ssim:
-      type: calculate_ssim
+      type: c_ssim
       crop_border: 2
       test_y_channel: true
 # python basicsr/test.py -opt options/test/MyArchs/test_MyFix2_x2.yml
