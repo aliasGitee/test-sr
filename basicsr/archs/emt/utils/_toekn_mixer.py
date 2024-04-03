@@ -153,15 +153,18 @@ class SWSA(nn.Module):
             return output
 
 if __name__ == '__main__':
-    dim = 60
-    window_list=[ [4, 2],[2, 4] ]
-    shift_list=[ [4, 2],[2, 4]]
+    # dim = 60
+    # window_list=[ [4, 2],[2, 4] ]
+    # shift_list=[ [4, 2],[2, 4]]
 
-    model = SWSA(dim=dim, num_heads=3,
-        attn_layer=[Conv2d1x1(dim, dim * 2),
-                    nn.BatchNorm2d(dim * 2)],
-        proj_layer=[Conv2d1x1(dim, dim)],
-        window_list=window_list,
-        shift_list=shift_list)
-    x = torch.randn(1,60,32,32)
+    # model = SWSA(dim=dim, num_heads=3,
+    #     attn_layer=[Conv2d1x1(dim, dim * 2),
+    #                 nn.BatchNorm2d(dim * 2)],
+    #     proj_layer=[Conv2d1x1(dim, dim)],
+    #     window_list=window_list,
+    #     shift_list=shift_list)
+    # x = torch.randn(1,60,32,32)
+    # print(model(x).shape)
+    x = torch.randn(1,36,12,12)
+    model = PixelMixer(planes=40)
     print(model(x).shape)

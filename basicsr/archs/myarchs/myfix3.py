@@ -2,8 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import ops
-from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock
-from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
+from basicsr.utils.registry import ARCH_REGISTRY
+from basicsr.archs.emt.utils import PixelMixer as PM
+from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EVTB
+
 
 # Layer Norm
 class LayerNorm(nn.Module):
@@ -95,17 +97,28 @@ class CCM(nn.Module):
     def forward(self, x):
         return self.ccm(x)
 
+# CCCM
 class CCCM(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, growth_rate=0.5):
         super().__init__()
-        self.dwconv = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim)
-        self.pwconv = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=1)
-        self.act = nn.GELU()
+        hidden_dim = int(dim * growth_rate)
+
+        # self.ccm = nn.Sequential(
+        #     nn.Conv2d(dim, hidden_dim, 3, 1, 1),
+        #     nn.GELU(),
+        #     nn.Conv2d(hidden_dim, dim, 1, 1, 0)
+        # )
+        self.ccm = nn.Sequential(
+            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
+            nn.GELU(),
+            EVTB(in_channels=hidden_dim,dim=hidden_dim//2,scales=(3,5,)),
+            nn.Conv2d(hidden_dim,dim,1)
+        )
+        #self.evtb = EVTB()
 
     def forward(self, x):
-        x = x + self.act(self.dwconv(x))
-        x = self.act(self.pwconv(x))
-        return x
+        return self.ccm(x)
+
 
 # SAFM
 class SAFM(nn.Module):
@@ -115,12 +128,17 @@ class SAFM(nn.Module):
         chunk_dim = dim // n_levels
 
         # Spatial Weighting
-        #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
-        self.mfr = nn.ModuleList([EfficientViTBlock(in_channels=chunk_dim,
-                dim=chunk_dim//3,
-                expand_ratio=4,
-                norm="ln2d",
-                act_func="hswish") for _ in range(self.n_levels)])
+        self.mfr = nn.ModuleList([
+            #nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim)
+            nn.Sequential(
+                nn.Conv2d(in_channels=chunk_dim,out_channels=chunk_dim,kernel_size=3,padding=i+1,dilation=i+1,groups=chunk_dim),
+                #nn.Conv2d(chunk_dim,chunk_dim,1)
+            ) for i in range(self.n_levels)])
+        self.mfr2 = nn.ModuleList([
+            #nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim)
+            nn.Sequential(
+                nn.Conv2d(chunk_dim,chunk_dim,1)
+            ) for _ in range(self.n_levels)])
 
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
@@ -136,11 +154,13 @@ class SAFM(nn.Module):
         for i in range(self.n_levels):
             if i > 0:
                 p_size = (h//2**i, w//2**i)
-                s = F.adaptive_max_pool2d(xc[i], p_size)
                 s = self.mfr[i](s)
+                s = F.adaptive_max_pool2d(xc[i], p_size)
+                s = self.mfr2[i](s)
                 s = F.interpolate(s, size=(h, w), mode='nearest')
             else:
                 s = self.mfr[i](xc[i])
+                s = self.mfr2[i](xc[i])
             out.append(s)
 
         out = self.aggr(torch.cat(out, dim=1))
@@ -157,7 +177,7 @@ class AttBlock(nn.Module):
         # Multiscale Block
         self.safm = SAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim)
+        self.ccm = CCCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
@@ -169,7 +189,11 @@ class myfix3(nn.Module):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
 
-        self.feats = nn.Sequential(*[AttBlock(dim, ffn_scale) for _ in range(n_blocks)])
+        self.feats = nn.Sequential(*[
+            nn.Sequential(
+                AttBlock(dim, ffn_scale),
+                PM(planes=dim) if i<n_blocks-1 else nn.Identity()
+                )for i in range(n_blocks)])
 
         self.to_img = nn.Sequential(
             nn.Conv2d(dim, 3 * upscaling_factor**2, 3, 1, 1),
@@ -186,11 +210,17 @@ class myfix3(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    model = myfix3(dim=48)
-    x = torch.randn(1,3,64,64)
-    total_ops, total_params = thop.profile(model, (x,))
-    print(total_ops,' ',total_params)
+    model = myfix3(dim=40,ffn_scale=0.5)
+    x = torch.randn(1,3,48,48)
+    # total_ops, total_params = thop.profile(model, (x,))
+    # print(total_ops,' ',total_params)
 
-    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    # import torch
+    # from torchsummary import summary
+    #model = YourModel()
+    #summary(model, input_size=(3, 48, 48))
+    # Print out model parameter summary
+    #print('Total parameters:', sum(p.numel() for p in model.parameters() if p.requires_grad))
