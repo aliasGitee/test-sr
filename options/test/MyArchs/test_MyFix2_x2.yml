@@ -71,7 +71,7 @@ network_g:
 path:
   pretrain_network_g: experiments/train_MyFix2_x2/models/net_g_5000.pth
   strict_load_g: true
-  param_key_g: params_ema
+  param_key_g: params
 
 # validation settings
 val:
@@ -82,9 +82,9 @@ val:
     psnr: # metric name, can be arbitrary
       type: calculate_psnr
       crop_border: 2
-      test_y_channel: true
+      test_y_channel: false
     ssim:
       type: calculate_ssim
       crop_border: 2
-      test_y_channel: true
+      test_y_channel: false
 # python basicsr/test.py -opt options/test/MyArchs/test_MyFix2_x2.yml
