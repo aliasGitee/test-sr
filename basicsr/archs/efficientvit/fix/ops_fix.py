@@ -11,8 +11,6 @@ from basicsr.archs.efficientvit.nn.act import build_act
 from basicsr.archs.efficientvit.nn.norm import build_norm
 from basicsr.archs.efficientvit.utils import get_same_padding, list_sum, resize, val2list, val2tuple
 
-from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
-
 __all__ = [
     "ConvLayer",
     "UpSampleLayer",
@@ -397,6 +395,10 @@ class LiteMLAFix(nn.Module):
             act_func=act_func[1],
         )
 
+        '''
+        x = x.permute(0, 2, 3, 1)
+    model = BiLevelRoutingAttention(dim=36,n_win=4,num_heads=4)
+        '''
     @autocast(enabled=False)
     # 假设in_c=12，乘以3就是36，假设dim=3，dim表示划分qkv、划分头后的向量维度，那heads就是4
     # 输入(b, 36, h, w)，输出(b, 36, h, w)
@@ -611,3 +613,7 @@ if __name__ == '__main__':
     # import thop
     # total_ops, total_params = thop.profile(model, (x,))
     # print(total_ops,' ', total_params)
+    '''
+    self.BA = BA(dim=3*total_dim, n_win=4, num_heads=heads)
+    self.BA(qkv.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+    '''

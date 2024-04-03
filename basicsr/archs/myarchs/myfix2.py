@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import ops
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock
+from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
 
 
 # Layer Norm
@@ -106,11 +107,15 @@ class SAFM(nn.Module):
         # Spatial Weighting
         #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
         self.mfr = nn.ModuleList([EfficientViTBlock(in_channels=chunk_dim,
-                dim=chunk_dim//4,
+                dim=chunk_dim//3,
                 expand_ratio=4,
                 norm="ln2d",
                 act_func="hswish") for _ in range(self.n_levels)])
-
+        '''
+        self.BA = BA(dim=3*total_dim, n_win=4, num_heads=heads)
+        self.BA(qkv.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        '''
+        self.BA = BA(dim=chunk_dim, n_win=4, num_heads=3)
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
 
@@ -129,7 +134,9 @@ class SAFM(nn.Module):
                 s = self.mfr[i](s)
                 s = F.interpolate(s, size=(h, w), mode='nearest')
             else:
-                s = self.mfr[i](xc[i])
+                #s = self.mfr[i](xc[i])
+                s = self.BA(xc[i].permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+                s = self.mfr[i](s)
             out.append(s)
 
         out = self.aggr(torch.cat(out, dim=1))
@@ -175,7 +182,7 @@ class myfix2(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    model = myfix2()
+    model = myfix2(dim=36)
     x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
