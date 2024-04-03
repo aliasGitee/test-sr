@@ -13,6 +13,7 @@ datasets:
     filename_tmpl: "{}"
     io_backend:
       type: disk
+    val_img_size_mod: 4
 
   # test_2: # the 2nd test dataset
   #   name: Set14
