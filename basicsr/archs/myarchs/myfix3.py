@@ -109,11 +109,8 @@ class CCCM(nn.Module):
         #     nn.Conv2d(hidden_dim, dim, 1, 1, 0)
         # )
         self.ccm = nn.Sequential(
-            nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
-            nn.GELU(),
-            EVTB(in_channels=hidden_dim,dim=hidden_dim//2,scales=(3,5,)),
-            nn.Conv2d(hidden_dim,dim,1),
-            nn.GELU()
+            #nn.Conv2d(in_channels=dim,out_channels=hidden_dim,kernel_size=3,padding=1,groups=hidden_dim),
+            EVTB(in_channels=dim,dim=dim//4,scales=(3,))
         )
         #self.evtb = EVTB()
 
