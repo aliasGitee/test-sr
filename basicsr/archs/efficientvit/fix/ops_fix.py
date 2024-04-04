@@ -467,6 +467,22 @@ class LiteMLAFix(nn.Module):
         out = self.proj(out)
         return out
 
+class LiteMLAFixBlock(nn.Module):
+    def __init__(self, in_channels: int, heads_ratio: float = 1.0, dim=32, expand_ratio: float = 4, scales=(5,), norm="bn2d", act_func="hswish",):
+        super().__init__()
+        self.context_module = ResidualBlock(
+            LiteMLAFix(
+                in_channels=in_channels,
+                out_channels=in_channels,
+                heads_ratio=heads_ratio,
+                dim=dim,
+                norm=(None, norm),
+                scales=scales,
+            ),
+            IdentityLayer())
+    def forward(self, x):
+        return self.context_module(x)
+
 class EfficientViTBlock(nn.Module):
     def __init__(
         self,

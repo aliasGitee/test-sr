@@ -1,7 +1,7 @@
 # general settings
 # Claculate on 720P
 # Params: 0.228M, FLOPs: 51.532G, Activations: 299M
-name: train_MyFix3_x2
+name: train_MyFix4_x2
 model_type: SRModel
 scale: 2
 num_gpu: 1 # set num_gpu: 0 for cpu mode
@@ -42,7 +42,7 @@ datasets:
 
 # network structures
 network_g:
-  type: MyFix3
+  type: MyFix4
   dim: 36
   n_blocks: 4
   upscaling_factor: 2

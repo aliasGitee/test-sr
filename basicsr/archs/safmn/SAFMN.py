@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
 
+'''
+514825632.0   226668.0
+'''
 
 # Layer Norm
 class LayerNorm(nn.Module):
