@@ -5,6 +5,7 @@ from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EFTB
 from basicsr.archs.efficientvit.fix.ops_fix import LiteMLAFixBlock as LMAB
+from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
 
 # Layer Norm
 class LayerNorm(nn.Module):
@@ -96,7 +97,7 @@ class CCM(nn.Module):
     def forward(self, x):
         return self.ccm(x)
 
-class CCCM(nn.Module):
+class CCCCM(nn.Module):
         def __init__(self, dim, growth_rate=2.0):
             super().__init__()
             hidden_dim = int(dim * growth_rate)
@@ -121,7 +122,12 @@ class CCCM(nn.Module):
             x_out = self.dw(x_out)
             x_out = x_out*self.ca(x_out)
             return x_out
-
+class CCCM(nn.Module):
+        def __init__(self, dim, growth_rate=2.0):
+            super().__init__()
+            self.ccm = BA(dim=36,n_win=4,num_heads=3)
+        def forward(self, x):
+            return self.ccm(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
 
 # SAFM
 class SAFM(nn.Module):
@@ -273,9 +279,9 @@ if __name__ == '__main__':
     import thop
     model = myfix4()
     x = torch.randn(1,3,64,64)
-    total_ops, total_params = thop.profile(model, (x,))
-    print(total_ops,' ',total_params)
+    # total_ops, total_params = thop.profile(model, (x,))
+    # print(total_ops,' ',total_params)
 
-    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

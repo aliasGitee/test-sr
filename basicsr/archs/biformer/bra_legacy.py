@@ -284,7 +284,10 @@ class BiLevelRoutingAttention(nn.Module):
             return out
 
 if __name__ == '__main__':
-    x = torch.randn(1,9,48,48)
+    x = torch.randn(1,36,64,64)
     x = x.permute(0, 2, 3, 1)
-    model = BiLevelRoutingAttention(dim=9,n_win=3,num_heads=3)
-    print(model(x).shape)
+    model = BiLevelRoutingAttention(dim=36,n_win=4,num_heads=3)
+    #print(model(x).shape)
+    import thop
+    total_ops, total_params = thop.profile(model, (x,))
+    print(total_ops,' ',total_params)

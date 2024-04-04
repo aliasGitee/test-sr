@@ -31,17 +31,17 @@ def create_lmdb_for_div2k():
     img_path_list, keys = prepare_keys_div2k(folder_path)
     make_lmdb_from_imgs(folder_path, lmdb_path, img_path_list, keys)
 
-    # LRx3 images
-    folder_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X3_sub'
-    lmdb_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic_X3_sub.lmdb'
-    img_path_list, keys = prepare_keys_div2k(folder_path)
-    make_lmdb_from_imgs(folder_path, lmdb_path, img_path_list, keys)
+    # # LRx3 images
+    # folder_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X3_sub'
+    # lmdb_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic_X3_sub.lmdb'
+    # img_path_list, keys = prepare_keys_div2k(folder_path)
+    # make_lmdb_from_imgs(folder_path, lmdb_path, img_path_list, keys)
 
-    # LRx4 images
-    folder_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub'
-    lmdb_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic_X4_sub.lmdb'
-    img_path_list, keys = prepare_keys_div2k(folder_path)
-    make_lmdb_from_imgs(folder_path, lmdb_path, img_path_list, keys)
+    # # LRx4 images
+    # folder_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub'
+    # lmdb_path = 'datasets/DIV2K/DIV2K_train_LR_bicubic_X4_sub.lmdb'
+    # img_path_list, keys = prepare_keys_div2k(folder_path)
+    # make_lmdb_from_imgs(folder_path, lmdb_path, img_path_list, keys)
 
 
 def prepare_keys_div2k(folder_path):
