@@ -227,7 +227,7 @@ class SAFMBlock(nn.Module):
         self.safm = SAFM(dim)
         # Feedforward layer
         # self.ccm = CCM(dim, ffn_scale)
-        self.ccm = CCCM(dim)
+        self.ccm = CCM(dim)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
