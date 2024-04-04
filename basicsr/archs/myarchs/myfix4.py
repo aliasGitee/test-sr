@@ -125,7 +125,7 @@ class CCCCM(nn.Module):
 class CCCM(nn.Module):
         def __init__(self, dim, growth_rate=2.0):
             super().__init__()
-            self.ccm = BA(dim=36,n_win=4,num_heads=3)
+            self.ccm = BA(dim=36,n_win=16,num_heads=4)
         def forward(self, x):
             return self.ccm(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
 
@@ -279,9 +279,9 @@ if __name__ == '__main__':
     import thop
     model = myfix4()
     x = torch.randn(1,3,64,64)
-    # total_ops, total_params = thop.profile(model, (x,))
-    # print(total_ops,' ',total_params)
+    total_ops, total_params = thop.profile(model, (x,))
+    print(total_ops,' ',total_params)
 
-    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
