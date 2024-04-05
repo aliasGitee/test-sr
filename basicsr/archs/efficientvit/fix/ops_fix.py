@@ -437,7 +437,7 @@ class LiteMLAFix(nn.Module):
         q, k, v = (
             qkv[..., 0 : self.dim*8],
             qkv[..., self.dim*8 : 2 * self.dim*8],
-            qkv[..., 2 * self.dim*10 :],
+            qkv[..., 2 * self.dim*8 :],
         )
 
         # lightweight linear attention
