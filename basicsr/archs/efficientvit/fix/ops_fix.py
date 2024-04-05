@@ -330,6 +330,148 @@ class ResBlock(nn.Module):
         x = self.conv2(x)
         return x
 
+class LiteMLAFix3(nn.Module):
+    r"""Lightweight multi-scale linear attention"""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        heads: int or None = None,
+        heads_ratio: float = 1.0,
+        dim=8,
+        use_bias=False,
+        norm=(None, "bn2d"),
+        act_func=(None, None),
+        kernel_func="relu",
+        scales: tuple[int, ...] = (5,),
+        eps=1.0e-15,
+    ):
+        super(LiteMLAFix3, self).__init__()
+        self.eps = eps
+        heads = heads or int(in_channels // dim * heads_ratio) # in_c//dim * 1.0 = 4
+        total_dim = heads * dim
+
+        use_bias = val2tuple(use_bias, 2)
+        norm = val2tuple(norm, 2)
+        act_func = val2tuple(act_func, 2)
+
+        self.dim = dim
+        self.expand = 6
+        # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
+        self.qkv = ConvLayer(
+            in_channels,
+            3 * total_dim,
+            1,
+            use_bias=use_bias[0],
+            norm=norm[0],
+            act_func=act_func[0],
+        )
+        # 首先聚合每个序列空间位置上相邻的信息
+        # 然后对每个dim做一次独立的全连接运算
+        self.aggreg = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Conv2d(
+                        3 * total_dim,
+                        3 * total_dim,
+                        scale,
+                        padding=get_same_padding(scale),
+                        groups=3 * total_dim,
+                        bias=use_bias[0],
+                    ),
+                    nn.Conv2d(3 * total_dim, 3 * total_dim, 1, groups=3 * heads, bias=use_bias[0]),
+                )
+                for scale in scales
+            ]
+        )
+        self.kernel_func = build_act(kernel_func, inplace=False)
+
+        self.proj = ConvLayer(
+            total_dim * (1 + len(scales)),
+            out_channels,
+            1,
+            use_bias=use_bias[1],
+            norm=norm[1],
+            act_func=act_func[1],
+        )
+
+        self.linear = nn.Conv2d(in_channels=in_channels*3,out_channels=in_channels*3*self.expand,kernel_size=1)
+        self.linear_down = nn.Conv2d(in_channels=in_channels*self.expand,out_channels=in_channels,kernel_size=1)
+
+    @autocast(enabled=False)
+    # 假设in_c=12，乘以3就是36，假设dim=3，dim表示划分qkv、划分头后的向量维度，那heads就是4
+    # 输入(b, 36, h, w)，输出(b, 36, h, w)
+    def relu_linear_att(self, qkv: torch.Tensor) -> torch.Tensor:
+        # qkv : (b, 36, h, w)
+        qkv = self.linear(qkv)
+
+        B, _, H, W = list(qkv.size())
+
+        if qkv.dtype == torch.float16:
+            qkv = qkv.float()
+
+        # (b, heads:4, 3*dim, len_seq:h*w)
+        qkv = torch.reshape(
+            qkv,
+            (
+                B,
+                -1,
+                3 * self.dim * self.expand,
+                H * W,
+            ),
+        )
+        # (b, heads:4, len_seq:h*w, 3*dim)
+        qkv = torch.transpose(qkv, -1, -2)
+
+
+        # q,k,v: (b, -1, h*w, dim)
+        q, k, v = (
+            qkv[..., 0 : self.dim * self.expand],
+            qkv[..., self.dim * self.expand : 2 * self.dim * self.expand],
+            qkv[..., 2 * self.dim * self.expand:],
+        )
+
+        # lightweight linear attention
+        # q -> relu(q)
+        q = self.kernel_func(q)
+        k = self.kernel_func(k)
+
+        # linear matmul
+        # (q@k.T)@v
+        trans_k = k.transpose(-1, -2)
+        v = F.pad(v, (0, 1), mode="constant", value=1)
+        kv = torch.matmul(trans_k, v)
+        out = torch.matmul(q, kv)
+        out = out[..., :-1] / (out[..., -1:] + self.eps)
+
+        # 恢复形状
+        out = torch.transpose(out, -1, -2)
+        out = torch.reshape(out, (B, -1, H, W))
+
+        out = self.linear_down(out)
+        # (b, 36, h, w)
+        return out
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # generate multi-scale q, k, v
+        # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
+        qkv = self.qkv(x)
+
+        multi_scale_qkv = [qkv]
+        for op in self.aggreg:
+            multi_scale_qkv.append(op(qkv))
+
+        out_list = []
+        for elem in multi_scale_qkv:
+            out = self.relu_linear_att(elem)
+            out_list.append(out)
+
+        # cat(qkv, dwconv(qkv)) -> (b,6*c,h,w)
+        out = torch.cat(out_list, dim=1)
+        out = self.proj(out)
+        return out
+
 class LiteMLAFix(nn.Module):
     r"""Lightweight multi-scale linear attention"""
 
@@ -348,6 +490,157 @@ class LiteMLAFix(nn.Module):
         eps=1.0e-15,
     ):
         super(LiteMLAFix, self).__init__()
+        self.eps = eps
+        heads = heads or int(in_channels // dim * heads_ratio) # in_c//dim * 1.0 = 4
+        total_dim = heads * dim
+
+        use_bias = val2tuple(use_bias, 2)
+        norm = val2tuple(norm, 2)
+        act_func = val2tuple(act_func, 2)
+
+        self.dim = dim
+        # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
+        self.qkv = ConvLayer(
+            in_channels,
+            3 * total_dim,
+            1,
+            use_bias=use_bias[0],
+            norm=norm[0],
+            act_func=act_func[0],
+        )
+        # 首先聚合每个序列空间位置上相邻的信息
+        # 然后对每个dim做一次独立的全连接运算
+        self.aggreg = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Conv2d(
+                        3 * total_dim,
+                        3 * total_dim,
+                        scale,
+                        padding=get_same_padding(scale),
+                        groups=3 * total_dim,
+                        bias=use_bias[0],
+                    ),
+                    nn.Conv2d(3 * total_dim, 3 * total_dim, 1, groups=3 * heads, bias=use_bias[0]),
+                )
+                for scale in scales
+            ]
+        )
+        self.kernel_func = build_act(kernel_func, inplace=False)
+
+        self.proj = ConvLayer(
+            total_dim * (1 + len(scales)),
+            out_channels,
+            1,
+            use_bias=use_bias[1],
+            norm=norm[1],
+            act_func=act_func[1],
+        )
+
+        '''
+        x = x.permute(0, 2, 3, 1)
+    model = BiLevelRoutingAttention(dim=36,n_win=4,num_heads=4)
+        '''
+        # self.linear = nn.Linear(3*dim,3*7*dim)
+        # self.linear2 = nn.Linear(dim*7,dim)
+    @autocast(enabled=False)
+    # 假设in_c=12，乘以3就是36，假设dim=3，dim表示划分qkv、划分头后的向量维度，那heads就是4
+    # 输入(b, 36, h, w)，输出(b, 36, h, w)
+    def relu_linear_att(self, qkv: torch.Tensor) -> torch.Tensor:
+        # qkv : (b, 36, h, w)
+        B, _, H, W = list(qkv.size())
+
+        if qkv.dtype == torch.float16:
+            qkv = qkv.float()
+
+        # (b, heads:4, 3*dim, len_seq:h*w)
+        qkv = torch.reshape(
+            qkv,
+            (
+                B,
+                -1,
+                3 * self.dim,
+                H * W,
+            ),
+        )
+        # (b, heads:4, len_seq:h*w, 3*dim)
+        qkv = torch.transpose(qkv, -1, -2)
+
+        '''
+        '''
+        #qkv = self.linear(qkv)
+
+        # q,k,v: (b, -1, h*w, dim)
+        q, k, v = (
+            qkv[..., 0 : self.dim],
+            qkv[..., self.dim : 2 * self.dim],
+            qkv[..., 2 * self.dim :],
+        )
+        # q, k, v = (
+        #     qkv[..., 0 : self.dim*7],
+        #     qkv[..., self.dim*7 : 2 * self.dim*7],
+        #     qkv[..., 2 * self.dim*7 :],
+        # )
+
+        # lightweight linear attention
+        # q -> relu(q)
+        q = self.kernel_func(q)
+        k = self.kernel_func(k)
+
+        # linear matmul
+        # (q@k.T)@v
+        trans_k = k.transpose(-1, -2)
+        v = F.pad(v, (0, 1), mode="constant", value=1)
+        kv = torch.matmul(trans_k, v)
+        out = torch.matmul(q, kv)
+        out = out[..., :-1] / (out[..., -1:] + self.eps)
+
+        ''''''
+        #out = self.linear2(out)
+
+        # 恢复形状
+        out = torch.transpose(out, -1, -2)
+        out = torch.reshape(out, (B, -1, H, W))
+        # (b, 36, h, w)
+        return out
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # generate multi-scale q, k, v
+        # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
+        qkv = self.qkv(x)
+
+        multi_scale_qkv = [qkv]
+        for op in self.aggreg:
+            multi_scale_qkv.append(op(qkv))
+
+        out_list = []
+        for elem in multi_scale_qkv:
+            out = self.relu_linear_att(elem)
+            out_list.append(out)
+
+        # cat(qkv, dwconv(qkv)) -> (b,6*c,h,w)
+        out = torch.cat(out_list, dim=1)
+        out = self.proj(out)
+        return out
+
+class LiteMLAFix2(nn.Module):
+    r"""Lightweight multi-scale linear attention"""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        heads: int or None = None,
+        heads_ratio: float = 1.0,
+        dim=8,
+        use_bias=False,
+        norm=(None, "bn2d"),
+        act_func=(None, None),
+        kernel_func="relu",
+        scales: tuple[int, ...] = (5,),
+        eps=1.0e-15,
+    ):
+        super(LiteMLAFix2, self).__init__()
         self.eps = eps
         heads = heads or int(in_channels // dim * heads_ratio) # in_c//dim * 1.0 = 4
         total_dim = heads * dim
@@ -536,6 +829,84 @@ class EfficientViTBlock(nn.Module):
         x = self.local_module(x)
         return x
 
+class EfficientViTBlock2(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        heads_ratio: float = 1.0,
+        dim=32,
+        expand_ratio: float = 4,
+        scales=(5,),
+        norm="bn2d",
+        act_func="hswish",
+    ):
+        super(EfficientViTBlock2, self).__init__()
+        self.context_module = ResidualBlock(
+            LiteMLAFix2(
+                in_channels=in_channels,
+                out_channels=in_channels,
+                heads_ratio=heads_ratio,
+                dim=dim,
+                norm=(None, norm),
+                scales=scales,
+            ),
+            IdentityLayer(),
+        )
+
+        local_module = MBConv(
+            in_channels=in_channels,
+            out_channels=in_channels,
+            expand_ratio=expand_ratio,
+            use_bias=(True, True, False),
+            norm=(None, None, norm),
+            act_func=(act_func, act_func, None),
+        )
+        self.local_module = ResidualBlock(local_module, IdentityLayer())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.context_module(x)
+        x = self.local_module(x)
+        return x
+
+
+class EfficientViTBlock3(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        heads_ratio: float = 1.0,
+        dim=32,
+        expand_ratio: float = 4,
+        scales=(5,),
+        norm="bn2d",
+        act_func="hswish",
+    ):
+        super(EfficientViTBlock3, self).__init__()
+        self.context_module = ResidualBlock(
+            LiteMLAFix3(
+                in_channels=in_channels,
+                out_channels=in_channels,
+                heads_ratio=heads_ratio,
+                dim=dim,
+                norm=(None, norm),
+                scales=scales,
+            ),
+            IdentityLayer(),
+        )
+
+        local_module = MBConv(
+            in_channels=in_channels,
+            out_channels=in_channels,
+            expand_ratio=expand_ratio,
+            use_bias=(True, True, False),
+            norm=(None, None, norm),
+            act_func=(act_func, act_func, None),
+        )
+        self.local_module = ResidualBlock(local_module, IdentityLayer())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.context_module(x)
+        x = self.local_module(x)
+        return x
 
 #################################################################################
 #                             Functional Blocks                                 #

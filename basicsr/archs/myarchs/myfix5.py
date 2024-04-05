@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
-from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EFTB
+from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock3 as EFTB
 from basicsr.archs.msnlan.common_fix import My_Block,default_conv
 from basicsr.archs.msnlan.common import CAer as CA
 
