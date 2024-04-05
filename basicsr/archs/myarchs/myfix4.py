@@ -125,7 +125,7 @@ class CCCCM(nn.Module):
 class CCCM(nn.Module):
         def __init__(self, dim, growth_rate=2.0):
             super().__init__()
-            self.ccm = BA(dim=36,n_win=16,num_heads=4)
+            self.ccm = BA(dim=36,n_win=8,num_heads=4)
         def forward(self, x):
             return self.ccm(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
 
@@ -138,18 +138,20 @@ class SAFM(nn.Module):
 
         # Spatial Weighting
         #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
-        # self.mfr = nn.ModuleList([EFTB(in_channels=chunk_dim,
-        #         dim=chunk_dim//3,
-        #         expand_ratio=4,
-        #         norm="ln2d",
-        #         act_func="hswish") for _ in range(self.n_levels)])
         k_list = [5,3,3,3]
-        self.mfr = nn.ModuleList([LMAB(in_channels=chunk_dim,
+        self.mfr = nn.ModuleList([EFTB(in_channels=chunk_dim,
                 dim=chunk_dim//3,
                 expand_ratio=4,
                 norm="ln2d",
                 scales=(k_list[i],),
                 act_func="hswish") for i in range(self.n_levels)])
+        # k_list = [5,3,3,3]
+        # self.mfr = nn.ModuleList([LMAB(in_channels=chunk_dim,
+        #         dim=chunk_dim//3,
+        #         expand_ratio=4,
+        #         norm="ln2d",
+        #         scales=(k_list[i],),
+        #         act_func="hswish") for i in range(self.n_levels)])
 
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)

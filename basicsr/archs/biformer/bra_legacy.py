@@ -200,7 +200,6 @@ class BiLevelRoutingAttention(nn.Module):
 
         self.auto_pad=auto_pad
 
-    # x -> qkv -> maxpool
     def forward(self, x, ret_attn_mask=False):
         """
         x: NHWC tensor
@@ -286,8 +285,8 @@ class BiLevelRoutingAttention(nn.Module):
 if __name__ == '__main__':
     x = torch.randn(1,36,64,64)
     x = x.permute(0, 2, 3, 1)
-    model = BiLevelRoutingAttention(dim=36,n_win=4,num_heads=3)
+    model = BiLevelRoutingAttention(dim=36,n_win=16,num_heads=4)
     #print(model(x).shape)
-    import thop
-    total_ops, total_params = thop.profile(model, (x,))
-    print(total_ops,' ',total_params)
+    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

@@ -6,8 +6,18 @@ from basicsr.utils.registry import ARCH_REGISTRY
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EFTB
 
 '''
-542928096.0   261948.0
-有提升
+542928096.0   261948.0 / 514825632.0   226668.0
+    Set5
+        psnr: 38.0465/37.9654  ssim: 0.9610/0.9611
+    Set14
+        psnr: 33.5812/33.5346  ssim: 0.9183/0.9176
+    B100
+        psnr: 32.1707/32.1559  ssim: 0.9003/0.9001
+    Urban100
+        psnr: 31.9662/31.8995  ssim: 0.9260/0.9258
+    Manga109
+	    psnr: 38.6889/38.5548  ssim: 0.9772/0.9770
+
 (SAFM -> SAFM)*4 改为 (SAFM -> DAFM)*4
 SAFM:
     x:
