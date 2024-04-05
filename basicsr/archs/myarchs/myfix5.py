@@ -5,6 +5,7 @@ from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EFTB
 from basicsr.archs.msnlan.common_fix import My_Block,default_conv
+from basicsr.archs.msnlan.common import CAer as CA
 
 
 # Layer Norm
@@ -46,9 +47,18 @@ class CCM(nn.Module):
 class CCCM(nn.Module):
     def __init__(self,dim, growth_rate=2.0):
         super().__init__()
-        self.ccm = My_Block(n_feats=dim,conv=default_conv)
+        self.conv1 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1)
+        self.conv2 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim)
+        self.conv3 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim//2)
+        self.conv = nn.Conv2d(in_channels=dim*3,out_channels=dim,kernel_size=1)
+        self.ca = CA(channel=dim,reduction=9)
     def forward(self,x):
-        return self.ccm(x)
+        x1 = self.conv1(x)
+        x2 = self.conv2(x)
+        x3 = self.conv3(x)
+        x_out = self.conv(torch.cat([x1,x2,x3], dim=1))
+        x_out = x + self.ca(x_out)
+        return x_out
 
 # SAFM
 class SAFM(nn.Module):

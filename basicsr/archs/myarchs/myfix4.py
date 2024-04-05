@@ -4,9 +4,11 @@ import torch.nn.functional as F
 from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EFTB
-from basicsr.archs.efficientvit.fix.ops_fix import LiteMLAFixBlock as LMAB
-from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
+#from basicsr.archs.msnlan.common_fix import My_Block,default_conv
 
+'''
+与2的区别：膨胀卷积递增
+'''
 # Layer Norm
 class LayerNorm(nn.Module):
     def __init__(self, normalized_shape, eps=1e-6, data_format="channels_first"):
@@ -29,59 +31,6 @@ class LayerNorm(nn.Module):
             x = self.weight[:, None, None] * x + self.bias[:, None, None]
             return x
 
-# SE
-class SqueezeExcitation(nn.Module):
-    def __init__(self, dim, shrinkage_rate=0.25):
-        super().__init__()
-        hidden_dim = int(dim * shrinkage_rate)
-
-        self.gate = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(dim, hidden_dim, 1, 1, 0),
-            nn.GELU(),
-            nn.Conv2d(hidden_dim, dim, 1, 1, 0),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x):
-        return x * self.gate(x)
-
-
-# Channel MLP: Conv1*1 -> Conv1*1
-class ChannelMLP(nn.Module):
-    def __init__(self, dim, growth_rate=2.0):
-        super().__init__()
-        hidden_dim = int(dim * growth_rate)
-
-        self.mlp = nn.Sequential(
-            nn.Conv2d(dim, hidden_dim, 1, 1, 0),
-            nn.GELU(),
-            nn.Conv2d(hidden_dim, dim, 1, 1, 0)
-        )
-
-    def forward(self, x):
-        return self.mlp(x)
-
-
-# MBConv: Conv1*1 -> DW Conv3*3 -> [SE] -> Conv1*1
-class MBConv(nn.Module):
-    def __init__(self, dim, growth_rate=2.0):
-        super().__init__()
-        hidden_dim = int(dim * growth_rate)
-
-        self.mbconv = nn.Sequential(
-            nn.Conv2d(dim, hidden_dim, 1, 1, 0),
-            nn.GELU(),
-            nn.Conv2d(hidden_dim, hidden_dim, 3, 1, 1, groups=hidden_dim),
-            nn.GELU(),
-            SqueezeExcitation(hidden_dim),
-            nn.Conv2d(hidden_dim, dim, 1, 1, 0)
-        )
-
-    def forward(self, x):
-        return self.mbconv(x)
-
-
 # CCM
 class CCM(nn.Module):
     def __init__(self, dim, growth_rate=2.0):
@@ -93,41 +42,15 @@ class CCM(nn.Module):
             nn.GELU(),
             nn.Conv2d(hidden_dim, dim, 1, 1, 0)
         )
-
     def forward(self, x):
         return self.ccm(x)
 
-class CCCCM(nn.Module):
-        def __init__(self, dim, growth_rate=2.0):
-            super().__init__()
-            hidden_dim = int(dim * growth_rate)
-            self.pw1 = nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=3, padding=1, groups=dim)
-            self.pw2 = nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=5, padding=2, groups=dim)
-            self.pw3 = nn.Conv2d(in_channels=dim, out_channels=dim, kernel_size=7, padding=3, groups=dim)
-            self.dw = nn.Conv2d(dim*3,dim,1)
-            #self.ca = CAer(dim,9)
-            self.ca = nn.Sequential(
-                nn.AdaptiveAvgPool2d(1),
-                # feature channel downscale and upscale --> channel weight
-                nn.Sequential(
-                    nn.Conv2d(dim, dim // 9, 1, padding=0, bias=True),
-                    nn.ReLU(inplace=True),
-                    nn.Conv2d(dim // 9, dim, 1, padding=0, bias=True),
-                    nn.Sigmoid()))
-        def forward(self, x):
-            x1 = self.pw1(x)
-            x2 = self.pw2(x)
-            x3 = self.pw3(x)
-            x_out = torch.cat([x1,x2,x3],dim=1)
-            x_out = self.dw(x_out)
-            x_out = x_out*self.ca(x_out)
-            return x_out
-class CCCM(nn.Module):
-        def __init__(self, dim, growth_rate=2.0):
-            super().__init__()
-            self.ccm = BA(dim=36,n_win=8,num_heads=4)
-        def forward(self, x):
-            return self.ccm(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+# class CCCM(nn.Module):
+#     def __init__(self,dim, growth_rate=2.0):
+#         super().__init__()
+#         self.ccm = My_Block(n_feats=dim,conv=default_conv)
+#     def forward(self,x):
+#         return self.ccm(x)
 
 # SAFM
 class SAFM(nn.Module):
@@ -138,20 +61,11 @@ class SAFM(nn.Module):
 
         # Spatial Weighting
         #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
-        k_list = [5,3,3,3]
         self.mfr = nn.ModuleList([EFTB(in_channels=chunk_dim,
                 dim=chunk_dim//3,
                 expand_ratio=4,
                 norm="ln2d",
-                scales=(k_list[i],),
-                act_func="hswish") for i in range(self.n_levels)])
-        # k_list = [5,3,3,3]
-        # self.mfr = nn.ModuleList([LMAB(in_channels=chunk_dim,
-        #         dim=chunk_dim//3,
-        #         expand_ratio=4,
-        #         norm="ln2d",
-        #         scales=(k_list[i],),
-        #         act_func="hswish") for i in range(self.n_levels)])
+                act_func="hswish") for _ in range(self.n_levels)])
 
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
@@ -189,7 +103,7 @@ class DAFM(nn.Module):
         self.mfr1 = nn.ModuleList([
                 nn.Conv2d(chunk_dim, chunk_dim, kernel_size=3, padding=i+1, dilation=i+1,groups=chunk_dim)
                 for i in range(self.n_levels)])
-        self.mfr2 = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for _ in range(self.n_levels)])
+        self.mfr2 = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
 
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
@@ -228,8 +142,7 @@ class SAFMBlock(nn.Module):
         # Multiscale Block
         self.safm = SAFM(dim)
         # Feedforward layer
-        # self.ccm = CCM(dim, ffn_scale)
-        self.ccm = CCM(dim)
+        self.ccm = CCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
@@ -246,8 +159,7 @@ class DAFMBlock(nn.Module):
         # Multiscale Block
         self.dafm = DAFM(dim)
         # Feedforward layer
-        # self.ccm = CCM(dim, ffn_scale)
-        self.ccm = CCCM(dim)
+        self.ccm = CCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.dafm(self.norm1(x)) + x
@@ -280,10 +192,6 @@ class myfix4(nn.Module):
 if __name__ == '__main__':
     import thop
     model = myfix4()
-    x = torch.randn(1,3,64,64)
+    x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
-
-    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
