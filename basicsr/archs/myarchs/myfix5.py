@@ -48,15 +48,14 @@ class CCCM(nn.Module):
     def __init__(self,dim, growth_rate=2.0):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1)
-        self.conv2 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim)
         self.conv3 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim//2)
-        self.conv = nn.Conv2d(in_channels=dim*3,out_channels=dim,kernel_size=1)
+        self.conv = nn.Conv2d(in_channels=dim*2,out_channels=dim,kernel_size=1)
         #self.ca = CA(channel=dim,reduction=9)
     def forward(self,x):
         x1 = self.conv1(x)
-        x2 = self.conv2(x)
+        #x2 = self.conv2(x)
         x3 = self.conv3(x)
-        x_out = torch.cat([x1,x2,x3],dim=1)
+        x_out = torch.cat([x1,x3],dim=1)
         x_out = self.conv(F.gelu(x_out))
         return x_out
 
