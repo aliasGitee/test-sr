@@ -399,6 +399,8 @@ class LiteMLAFix(nn.Module):
         x = x.permute(0, 2, 3, 1)
     model = BiLevelRoutingAttention(dim=36,n_win=4,num_heads=4)
         '''
+        self.linear = nn.Linear(3*dim,3*10*dim)
+        self.linear2 = nn.Linear(dim*10,dim)
     @autocast(enabled=False)
     # 假设in_c=12，乘以3就是36，假设dim=3，dim表示划分qkv、划分头后的向量维度，那heads就是4
     # 输入(b, 36, h, w)，输出(b, 36, h, w)
@@ -422,11 +424,20 @@ class LiteMLAFix(nn.Module):
         # (b, heads:4, len_seq:h*w, 3*dim)
         qkv = torch.transpose(qkv, -1, -2)
 
+        '''
+        '''
+        qkv = self.linear(qkv)
+
         # q,k,v: (b, -1, h*w, dim)
+        # q, k, v = (
+        #     qkv[..., 0 : self.dim],
+        #     qkv[..., self.dim : 2 * self.dim],
+        #     qkv[..., 2 * self.dim :],
+        # )
         q, k, v = (
-            qkv[..., 0 : self.dim],
-            qkv[..., self.dim : 2 * self.dim],
-            qkv[..., 2 * self.dim :],
+            qkv[..., 0 : self.dim*10],
+            qkv[..., self.dim*10 : 2 * self.dim*10],
+            qkv[..., 2 * self.dim*10 :],
         )
 
         # lightweight linear attention
@@ -441,6 +452,9 @@ class LiteMLAFix(nn.Module):
         kv = torch.matmul(trans_k, v)
         out = torch.matmul(q, kv)
         out = out[..., :-1] / (out[..., -1:] + self.eps)
+
+        ''''''
+        out = self.linear2(out)
 
         # 恢复形状
         out = torch.transpose(out, -1, -2)
