@@ -140,7 +140,7 @@ class SAFMBlock(nn.Module):
         # Multiscale Block
         self.safm = SAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim, ffn_scale)
+        self.ccm = CCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
@@ -157,14 +157,14 @@ class DAFMBlock(nn.Module):
         # Multiscale Block
         self.dafm = DAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim, ffn_scale)
+        self.ccm = CCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.dafm(self.norm1(x)) + x
         x = self.ccm(self.norm2(x)) + x
         return x
 
-class myfix3(nn.Module):
+class myfix5(nn.Module):
     def __init__(self, dim=36, n_blocks=4, ffn_scale=2.0, upscaling_factor=2):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
@@ -189,7 +189,7 @@ class myfix3(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    model = myfix3()
+    model = myfix5()
     x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
