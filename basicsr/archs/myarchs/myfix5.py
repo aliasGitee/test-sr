@@ -140,7 +140,7 @@ class SAFMBlock(nn.Module):
         # Multiscale Block
         self.safm = SAFM(dim)
         # Feedforward layer
-        self.ccm = CCM(dim, ffn_scale)
+        self.ccm = CCCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
@@ -157,7 +157,7 @@ class DAFMBlock(nn.Module):
         # Multiscale Block
         self.dafm = DAFM(dim)
         # Feedforward layer
-        self.ccm = CCM(dim, ffn_scale)
+        self.ccm = CCCM(dim, ffn_scale)
 
     def forward(self, x):
         x = self.dafm(self.norm1(x)) + x

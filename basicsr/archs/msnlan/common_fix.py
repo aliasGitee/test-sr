@@ -17,18 +17,23 @@ class My_Block(nn.Module):
         super(My_Block, self).__init__()
         self.res_scale = res_scale
         ms_body1 = []
-        ms_body1.append(conv(n_feats, n_feats, 3, group_num=n_feats, bias=bias))
-        ms_body1.append(conv(n_feats, n_feats, 1, bias=bias))
+        # ms_body1.append(conv(n_feats, n_feats, 1, bias=bias))
+        # ms_body1.append(conv(n_feats, n_feats, 3, group_num=n_feats, bias=bias))
+        ms_body1.append(conv(n_feats, n_feats, 3, bias=bias))
         ms_body1.append(act)
 
         ms_body2 = []
+        # ms_body2.append(conv(n_feats, n_feats, 1, bias=bias))
+        # ms_body2.append(conv(n_feats, n_feats, 3, group_num=n_feats, bias=bias))
         ms_body2.append(conv(n_feats, n_feats, 3, group_num=n_feats, bias=bias))
         ms_body2.append(conv(n_feats, n_feats, 1, bias=bias))
         ms_body2.append(act)
 
         ms_body3=[]
-        ms_body3.append(conv(n_feats, n_feats, 3, group_num=n_feats, bias=bias))
-        ms_body3.append(conv(n_feats, n_feats, 1, bias=bias))
+        # ms_body3.append(conv(n_feats, n_feats, 1, bias=bias))
+        # ms_body3.append(conv(n_feats, n_feats, 3, group_num=n_feats, bias=bias))
+        ms_body3.append(conv(n_feats, n_feats, 3, group_num=n_feats//2 ,bias=bias))
+        ms_body3.append(conv(n_feats, n_feats, 1 ,bias=bias))
         ms_body3.append(act)
 
         self.branch1 = nn.Sequential(*ms_body1)
@@ -56,7 +61,6 @@ class My_Block(nn.Module):
 
         # res = self.SA(res)*self.res_scale+res
         return output
-
 
 class CCALayer(nn.Module):
     def __init__(self, channel, reduction=16):

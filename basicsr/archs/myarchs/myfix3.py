@@ -2,37 +2,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import ops
-from basicsr.utils.registry import ARCH_REGISTRY
-from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EFTB
+from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock
+from basicsr.archs.biformer.bra_legacy import BiLevelRoutingAttention as BA
 
 '''
-542928096.0   261948.0 / 514825632.0   226668.0
-    Set5
-        psnr: 38.0465/37.9654  ssim: 0.9610/0.9611
-    Set14
-        psnr: 33.5812/33.5346  ssim: 0.9183/0.9176
-    B100
-        psnr: 32.1707/32.1559  ssim: 0.9003/0.9001
-    Urban100
-        psnr: 31.9662/31.8995  ssim: 0.9260/0.9258
-    Manga109
-	    psnr: 38.6889/38.5548  ssim: 0.9772/0.9770
-
-(SAFM -> SAFM)*4 改为 (SAFM -> DAFM)*4
-SAFM:
-    x:
-        x0 -> EFTB(dim=in_c//3) -> out
-        x1 -> maxpool*2 -> EFTB(dim=in_c//3) -> nearest_upsample -> out
-        x2 -> maxpool*4 -> EFTB(dim=in_c//3) -> nearest_upsample -> out
-        x3 -> maxpool*8 -> EFTB(dim=in_c//3) -> nearest_upsample -> out
-DAFM:
-    x:
-        x0 -> conv_k=3_d=4_g=chunkdim -> conv_k=3_g=chunkdim -> out
-        x1 -> conv_k=3_d=3_g=chunkdim -> maxpool*2 -> conv_k=3_g=chunkdim -> nearest_upsample -> out
-        x2 -> conv_k=3_d=2_g=chunkdim -> maxpool*4 -> conv_k=3_g=chunkdim -> nearest_upsample -> out
-        x3 -> conv_k=3_d=1_g=chunkdim -> maxpool*8 -> conv_k=3_g=chunkdim -> nearest_upsample -> out
-
+[x0,x1,x2,x3]，x0后面先经过BA，再经过EFB，其他不变，有提升，但是显存占用大
+668021152.0   297948.0
 '''
+
 # Layer Norm
 class LayerNorm(nn.Module):
     def __init__(self, normalized_shape, eps=1e-6, data_format="channels_first"):
@@ -124,7 +101,6 @@ class CCM(nn.Module):
         return self.ccm(x)
 
 
-
 # SAFM
 class SAFM(nn.Module):
     def __init__(self, dim, n_levels=4):
@@ -134,12 +110,16 @@ class SAFM(nn.Module):
 
         # Spatial Weighting
         #self.mfr = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
-        self.mfr = nn.ModuleList([EFTB(in_channels=chunk_dim,
+        self.mfr = nn.ModuleList([EfficientViTBlock(in_channels=chunk_dim,
                 dim=chunk_dim//3,
                 expand_ratio=4,
                 norm="ln2d",
                 act_func="hswish") for _ in range(self.n_levels)])
-
+        '''
+        self.BA = BA(dim=3*total_dim, n_win=4, num_heads=heads)
+        self.BA(qkv.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        '''
+        self.BA = BA(dim=chunk_dim, n_win=4, num_heads=3)
         # # Feature Aggregation
         self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
 
@@ -158,54 +138,16 @@ class SAFM(nn.Module):
                 s = self.mfr[i](s)
                 s = F.interpolate(s, size=(h, w), mode='nearest')
             else:
-                s = self.mfr[i](xc[i])
+                #s = self.mfr[i](xc[i])
+                s = self.BA(xc[i].permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+                s = self.mfr[i](s)
             out.append(s)
 
         out = self.aggr(torch.cat(out, dim=1))
         out = self.act(out) * x
         return out
 
-# DAFM
-class DAFM(nn.Module):
-    def __init__(self, dim, n_levels=4):
-        super().__init__()
-        self.n_levels = n_levels
-        chunk_dim = dim // n_levels
-
-        # Spatial Weighting
-        self.mfr1 = nn.ModuleList([
-                nn.Conv2d(chunk_dim, chunk_dim, kernel_size=3, padding=n_levels-i, dilation=n_levels-i,groups=chunk_dim)
-                for i in range(self.n_levels)])
-        self.mfr2 = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
-
-        # # Feature Aggregation
-        self.aggr = nn.Conv2d(dim, dim, 1, 1, 0)
-
-        # Activation
-        self.act = nn.GELU()
-
-    def forward(self, x):
-        h, w = x.size()[-2:]
-
-        xc = x.chunk(self.n_levels, dim=1)
-        out = []
-        for i in range(self.n_levels):
-            if i > 0:
-                p_size = (h//2**i, w//2**i)
-                s = self.mfr1[i](s)
-                s = F.adaptive_max_pool2d(xc[i], p_size)
-                s = self.mfr2[i](s)
-                s = F.interpolate(s, size=(h, w), mode='nearest')
-            else:
-                s = self.mfr1[i](xc[i])
-                s = self.mfr2[i](xc[i])
-            out.append(s)
-
-        out = self.aggr(torch.cat(out, dim=1))
-        out = self.act(out) * x
-        return out
-
-class SAFMBlock(nn.Module):
+class AttBlock(nn.Module):
     def __init__(self, dim, ffn_scale=2.0):
         super().__init__()
 
@@ -222,32 +164,12 @@ class SAFMBlock(nn.Module):
         x = self.ccm(self.norm2(x)) + x
         return x
 
-class DAFMBlock(nn.Module):
-    def __init__(self, dim, ffn_scale=2.0):
-        super().__init__()
-
-        self.norm1 = LayerNorm(dim)
-        self.norm2 = LayerNorm(dim)
-
-        # Multiscale Block
-        self.dafm = DAFM(dim)
-        # Feedforward layer
-        self.ccm = CCM(dim, ffn_scale)
-
-    def forward(self, x):
-        x = self.dafm(self.norm1(x)) + x
-        x = self.ccm(self.norm2(x)) + x
-        return x
-
 class myfix3(nn.Module):
-    def __init__(self, dim=36, n_blocks=4, ffn_scale=2.0, upscaling_factor=2):
+    def __init__(self, dim=36, n_blocks=8, ffn_scale=2.0, upscaling_factor=2):
         super().__init__()
         self.to_feat = nn.Conv2d(3, dim, 3, 1, 1)
 
-        self.feats = nn.Sequential(*[
-            nn.Sequential(SAFMBlock(dim, ffn_scale),
-                          DAFMBlock(dim,ffn_scale))
-            for _ in range(n_blocks)])
+        self.feats = nn.Sequential(*[AttBlock(dim, ffn_scale) for _ in range(n_blocks)])
 
         self.to_img = nn.Sequential(
             nn.Conv2d(dim, 3 * upscaling_factor**2, 3, 1, 1),
@@ -264,7 +186,7 @@ class myfix3(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    model = myfix3()
+    model = myfix3(dim=36)
     x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
