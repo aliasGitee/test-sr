@@ -43,23 +43,23 @@ def main():
     opt['n_thread'] = 20
     opt['compression_level'] = 3
 
-    # HR images
-    opt['input_folder'] = 'datasets/DIV2K/DIV2K_train_HR'
-    opt['save_folder'] = 'datasets/DIV2K/DIV2K_train_HR_sub'
-    # opt['input_folder'] = 'datasets/DF2K/DF2K_train_HR'
-    # opt['save_folder'] = 'datasets/DF2K/DF2K_train_HR_sub'
-    opt['crop_size'] = 480
-    opt['step'] = 240
-    opt['thresh_size'] = 0
-    extract_subimages(opt)
+    # # HR images
+    # opt['input_folder'] = 'datasets/DIV2K/DIV2K_train_HR'
+    # opt['save_folder'] = 'datasets/DIV2K/DIV2K_train_HR_sub'
+    # # opt['input_folder'] = 'datasets/DF2K/DF2K_train_HR'
+    # # opt['save_folder'] = 'datasets/DF2K/DF2K_train_HR_sub'
+    # opt['crop_size'] = 480
+    # opt['step'] = 240
+    # opt['thresh_size'] = 0
+    # extract_subimages(opt)
 
-    # LRx2 images
-    opt['input_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X2'
-    opt['save_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X2_sub'
-    opt['crop_size'] = 240
-    opt['step'] = 120
-    opt['thresh_size'] = 0
-    extract_subimages(opt)
+    # # LRx2 images
+    # opt['input_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X2'
+    # opt['save_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X2_sub'
+    # opt['crop_size'] = 240
+    # opt['step'] = 120
+    # opt['thresh_size'] = 0
+    # extract_subimages(opt)
 
     # # LRx3 images
     # opt['input_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X3'
@@ -70,14 +70,14 @@ def main():
     # extract_subimages(opt)
 
     # LRx4 images
-    # opt['input_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X4'
-    # opt['save_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub'
+    opt['input_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X4'
+    opt['save_folder'] = 'datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub'
     # opt['input_folder'] = 'datasets/DF2K/DF2K_train_LR_bicubic/X4'
     # opt['save_folder'] = 'datasets/DF2K/DF2K_train_LR_bicubic/X4_sub'
-    # opt['crop_size'] = 120
-    # opt['step'] = 60
-    # opt['thresh_size'] = 0
-    # extract_subimages(opt)
+    opt['crop_size'] = 120
+    opt['step'] = 60
+    opt['thresh_size'] = 0
+    extract_subimages(opt)
 
 
 def extract_subimages(opt):

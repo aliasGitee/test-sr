@@ -71,7 +71,7 @@ class BAmutil(nn.Module):
             # (B, hs*ws*C, n_h*n_w) -> (B, n_h*n_w, hs*ws*C)
         x = x.transpose(1,2)
             # (B, n_h*n_w, hs*ws*C) -> (B, n_h*n_w, C, hs*ws)
-        x = x.reshape(1, n_w*n_h,c, hs*ws)
+        x = x.reshape(b, n_w*n_h,c, hs*ws)
             # (B, n_h*n_w, C, hs*ws) -> (B, n_h*n_w, hs*ws, C)
         x = x.transpose(2,3)
 
@@ -86,15 +86,15 @@ class BAmutil(nn.Module):
         # (heads, S^2, WH/S^2, C//heads) -> (heads, S^2, C//heads)
         q_r,k_r = q.mean(dim=3),k.mean(dim=3)
         # Ar: (heads, S^2, S^2)
-        a_r = q_r@(k_r.transpose(2,3))
-        a_r = F.relu(a_r)
+        a_r = F.relu(q_r)@(F.relu(k_r.transpose(2,3)))
+        #a_r = F.softmax(F.relu(a_r),dim=3)
         # Ir, topk
         # ir = torch.topk(ar, k=self.topk, dim=2)
         # ir_index = ir.indices
         k = (a_r @ k.reshape(b, self.heads,n_w*n_h, -1)).reshape(b,self.heads, n_w*n_h,-1,self.c_perh)
         q = (a_r @ q.reshape(b, self.heads,n_w*n_h, -1)).reshape(b,self.heads, n_w*n_h,-1,self.c_perh)
 
-        o = F.relu((q@k.transpose(-1,-2)))@v
+        o = (F.relu(q)@F.relu(k.transpose(-1,-2)))@v
 
         # 复原
         o = o.transpose(2,3).permute(0,2,3,1,4).reshape(b, n_h*n_w, hs*ws, c).reshape(b, n_h*n_w, hs*ws*c).transpose(1,2)
