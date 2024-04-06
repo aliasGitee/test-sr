@@ -12,11 +12,11 @@ datasets:
   train:
     name: DIV2K
     type: PairedImageDataset
-    dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub.lmdb
-    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_X2_sub.lmdb
+    dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
+    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_sub/X2_sub
     filename_tmpl: "{}"
     io_backend:
-      type: lmdb
+      type: disk
 
     gt_size: 128
     use_hflip: true
