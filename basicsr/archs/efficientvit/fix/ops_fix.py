@@ -357,7 +357,7 @@ class LiteMLAFix3(nn.Module):
         act_func = val2tuple(act_func, 2)
 
         self.dim = dim
-        self.expand = 6
+        self.expand = 8
         # conv1*1: (b,c,h,w) -> (b,3*c,h,w)
         self.qkv = ConvLayer(
             in_channels,

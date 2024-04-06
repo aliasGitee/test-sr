@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
-from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock2 as EFTB
+from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock3 as EFTB
 from basicsr.archs.msnlan.common_fix import My_Block,default_conv
 from basicsr.archs.msnlan.common import CAer as CA
 from basicsr.archs.shufflenet.v2 import channel_shuffle
@@ -43,7 +43,7 @@ class CCM(nn.Module):
             nn.Conv2d(hidden_dim, dim, 1, 1, 0)
         )
     def forward(self, x):
-        return self.ccm(x)
+        return F.gelu(self.ccm(x))
 
 class CCCM(nn.Module):
     def __init__(self,dim, growth_rate=2.0):
@@ -54,7 +54,7 @@ class CCCM(nn.Module):
         self.conv = nn.Conv2d(in_channels=dim*2,out_channels=dim,kernel_size=1)
         #self.ccm = nn.Conv2d(dim,dim,3,1,1)
     def forward(self,x):
-        x = channel_shuffle(x,groups=2)
+        #x = channel_shuffle(x,groups=2)
         x1 = self.conv1(x)
         #x2 = self.conv2(x)
         x3 = self.conv3(x)
@@ -65,9 +65,19 @@ class CCCM(nn.Module):
 class C2M(nn.Module):
     def __init__(self, dim, growth_rate=2.0):
         super().__init__()
-        self.ccm = ShuffleBlock(inp=dim,oup=dim,stride=1)
+        # self.dw = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=5,padding=2,groups=dim)
+        # self.pw = nn.Conv2d(in_channels=dim, out_channels=dim,kernel_size=1)
+        # self.ddw = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=2,dilation=2,groups=dim)
+        # self.act = nn.GELU()
+        # self.pw2 = nn.Conv2d(dim,dim,1)
+
+        self.conv = nn.Conv2d(dim,dim,3,1,1)
     def forward(self,x):
-        return self.ccm(x)
+        # x_mixer = x + self.act(self.dw(self.pw(self.ddw(x))))
+        # x_mixer = self.act(self.pw2(x_mixer))
+        # x_default = self.conv(x)
+
+        return self.conv(x)
 
 # SAFM
 class SAFM(nn.Module):
@@ -111,7 +121,7 @@ class SAFM(nn.Module):
 
 # DAFM
 class DAFM(nn.Module):
-    def __init__(self, dim, n_levels=4):
+    def __init__(self, dim, n_levels=3):
         super().__init__()
         self.n_levels = n_levels
         chunk_dim = dim // n_levels
@@ -159,7 +169,7 @@ class SAFMBlock(nn.Module):
         # Multiscale Block
         self.safm = SAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim, ffn_scale)
+        self.ccm = C2M(dim, ffn_scale)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
@@ -176,7 +186,7 @@ class DAFMBlock(nn.Module):
         # Multiscale Block
         self.dafm = DAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim, ffn_scale)
+        self.ccm = C2M(dim, ffn_scale)
 
     def forward(self, x):
         x = self.dafm(self.norm1(x)) + x
