@@ -312,9 +312,6 @@ class ShuffleV2Block(nn.Module):
 # from performer_pytorch import FastAttention
 # https://github.com/lucidrains/performer-pytorch for more details
 
-
-
-
 # Linear Transformer
 # https://github.com/idiap/fast-transformers
 # Linear Transformer

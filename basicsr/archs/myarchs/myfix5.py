@@ -6,6 +6,8 @@ from basicsr.utils.registry import ARCH_REGISTRY
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock3 as EFTB
 from basicsr.archs.msnlan.common_fix import My_Block,default_conv
 from basicsr.archs.msnlan.common import CAer as CA
+from basicsr.archs.shufflenet.v2 import channel_shuffle
+from basicsr.archs.msid.MSID import AFD,BSConvU
 
 
 # Layer Norm
@@ -48,16 +50,25 @@ class CCCM(nn.Module):
     def __init__(self,dim, growth_rate=2.0):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1)
+        #self.conv2 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim//3)
         self.conv3 = nn.Conv2d(in_channels=dim,out_channels=dim,kernel_size=3,padding=1,groups=dim//2)
         self.conv = nn.Conv2d(in_channels=dim*2,out_channels=dim,kernel_size=1)
-        #self.ca = CA(channel=dim,reduction=9)
+        #self.ccm = nn.Conv2d(dim,dim,3,1,1)
     def forward(self,x):
+        x = channel_shuffle(x,groups=2)
         x1 = self.conv1(x)
         #x2 = self.conv2(x)
         x3 = self.conv3(x)
         x_out = torch.cat([x1,x3],dim=1)
         x_out = self.conv(F.gelu(x_out))
         return x_out
+
+class C2M(nn.Module):
+    def __init__(self, dim, growth_rate=2.0):
+        super().__init__()
+        self.ccm = AFD(in_channels=dim,conv=BSConvU)
+    def forward(self,x):
+        return self.ccm(x)
 
 # SAFM
 class SAFM(nn.Module):
@@ -108,7 +119,7 @@ class DAFM(nn.Module):
 
         # Spatial Weighting
         self.mfr1 = nn.ModuleList([
-                nn.Conv2d(chunk_dim, chunk_dim, kernel_size=3, padding=i+1, dilation=i+1,groups=chunk_dim)
+                nn.Conv2d(chunk_dim, chunk_dim, kernel_size=3, padding=n_levels-i, dilation=n_levels-i,groups=chunk_dim)
                 for i in range(self.n_levels)])
         self.mfr2 = nn.ModuleList([nn.Conv2d(chunk_dim, chunk_dim, 3, 1, 1, groups=chunk_dim) for i in range(self.n_levels)])
 
@@ -149,7 +160,7 @@ class SAFMBlock(nn.Module):
         # Multiscale Block
         self.safm = SAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim, ffn_scale)
+        self.ccm = C2M(dim, ffn_scale)
 
     def forward(self, x):
         x = self.safm(self.norm1(x)) + x
@@ -166,7 +177,7 @@ class DAFMBlock(nn.Module):
         # Multiscale Block
         self.dafm = DAFM(dim)
         # Feedforward layer
-        self.ccm = CCCM(dim, ffn_scale)
+        self.ccm = C2M(dim, ffn_scale)
 
     def forward(self, x):
         x = self.dafm(self.norm1(x)) + x
