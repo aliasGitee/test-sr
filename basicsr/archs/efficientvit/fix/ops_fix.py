@@ -692,8 +692,9 @@ class LiteMLAFix2(nn.Module):
         x = x.permute(0, 2, 3, 1)
     model = BiLevelRoutingAttention(dim=36,n_win=4,num_heads=4)
         '''
-        self.linear = nn.Linear(3*dim,3*7*dim)
-        self.linear2 = nn.Linear(dim*7,dim)
+        self.expand = 6
+        self.linear = nn.Linear(3*dim,3*self.expand*dim)
+        self.linear2 = nn.Linear(dim*self.expand,dim)
     @autocast(enabled=False)
     # 假设in_c=12，乘以3就是36，假设dim=3，dim表示划分qkv、划分头后的向量维度，那heads就是4
     # 输入(b, 36, h, w)，输出(b, 36, h, w)
@@ -728,9 +729,9 @@ class LiteMLAFix2(nn.Module):
         #     qkv[..., 2 * self.dim :],
         # )
         q, k, v = (
-            qkv[..., 0 : self.dim*7],
-            qkv[..., self.dim*7 : 2 * self.dim*7],
-            qkv[..., 2 * self.dim*7 :],
+            qkv[..., 0 : self.dim*self.expand],
+            qkv[..., self.dim*self.expand : 2 * self.dim*self.expand],
+            qkv[..., 2 * self.dim*self.expand :],
         )
 
         # lightweight linear attention
