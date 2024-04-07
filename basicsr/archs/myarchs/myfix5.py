@@ -221,8 +221,8 @@ class AFD(nn.Module):
 
         self.c5 = nn.Conv2d(self.dc * 4, in_channels, 1)
 
-        #self.esa = SLKA(in_channels, k=21, d=3, shrink=attn_shrink, scale=attentionScale)
-        self.esa = mid_block(in_channels, k=21, d=3, shrink=attn_shrink, scale=attentionScale)
+        self.esa = SLKA(in_channels, k=21, d=3, shrink=attn_shrink, scale=attentionScale)
+        #self.esa = mid_block(in_channels, k=21, d=3, shrink=attn_shrink, scale=attentionScale)
 
 
     def forward(self, input):

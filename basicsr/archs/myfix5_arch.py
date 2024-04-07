@@ -6,10 +6,10 @@ from basicsr.utils.registry import ARCH_REGISTRY
 
 @ARCH_REGISTRY.register()
 class MyFix5(nn.Module):
-    def __init__(self,dim,n_blocks,upscaling_factor):
+    def __init__(self,upscale=2):
         super(MyFix5, self).__init__()
 
-        self.model = myarchs(n_blocks=n_blocks,dim=dim,upscaling_factor=upscaling_factor)
+        self.model = myarchs(upscale=2)
 
     def forward(self,img_lr):
         img_sr = self.model(img_lr)

@@ -18,14 +18,14 @@ datasets:
     io_backend:
       type: disk
 
-    gt_size: 128
+    gt_size: 96
     use_hflip: true
     use_rot: true
 
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 16
+    batch_size_per_gpu: 64
     dataset_enlarge_ratio: 10
     prefetch_mode: ~
 
@@ -43,9 +43,7 @@ datasets:
 # network structures
 network_g:
   type: MyFix5
-  dim: 36
-  n_blocks: 4
-  upscaling_factor: 2
+  upscale: 2
 
 # path
 path:
