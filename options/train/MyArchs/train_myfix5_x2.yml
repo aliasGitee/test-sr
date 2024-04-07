@@ -82,7 +82,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 5000
+  val_freq: !!float 1000
   save_img: False
   pbar: False
 
