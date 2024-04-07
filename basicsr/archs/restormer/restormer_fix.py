@@ -10,6 +10,7 @@ from pdb import set_trace as stx
 import numbers
 
 from einops import rearrange
+from basicsr.archs.efficientvit.fix.ops_fix import MBConv,EfficientViTBlock,LiteMLAFix
 
 
 
@@ -134,7 +135,7 @@ class Attention(nn.Module):
 
 
 ##########################################################################
-class TransformerBlock(nn.Module):
+class TransformerBlock2(nn.Module):
     def __init__(self, dim, num_heads, ffn_expansion_factor, bias, LayerNorm_type):
         super(TransformerBlock, self).__init__()
 
@@ -149,7 +150,18 @@ class TransformerBlock(nn.Module):
 
         return x
 
-
+class TransformerBlock(nn.Module):
+    def __init__(self,dim, num_heads, ffn_expansion_factor, bias, LayerNorm_type):
+        super().__init__()
+        self.trans = LiteMLAFix(
+                in_channels=dim,
+                out_channels=dim,
+                heads_ratio=1.0,
+                dim=dim//4,
+                norm=(None, "ln2d"),
+                scales=(3,))
+    def forward(self,x):
+        return self.trans(x)
 
 ##########################################################################
 ## Overlapped image patch embedding with 3x3 Conv
@@ -287,8 +299,8 @@ if __name__ == '__main__':
     x = torch.randn(1,3,48,48)
     model = Restormer(inp_channels=3,
         out_channels=3,
-        dim = 48,
-        num_blocks = [4,6,6,8],
+        dim = 16,
+        num_blocks = [1,1,1,1],
         num_refinement_blocks = 4,
         heads = [1,2,4,8],
         ffn_expansion_factor = 2.66)
