@@ -592,21 +592,7 @@ class OpSequential(nn.Module):
         return x
 
 if __name__ == '__main__':
-    # model = EfficientViTBlock(in_channels=128,dim=32)
-    # x = torch.randn(1,128,192,192)
-    # print(model(x).shape)
-    model = LiteMLA(
-        in_channels=128,
-        out_channels=128,
-        heads_ratio=1.0,
-        dim=32,
-        norm=(None, "bn2d"),
-        scales=(5,),
-    )
-    x = torch.randn(1,128,12,12)
+    x = torch.randn(1,64,16,16)
+    model = UpSampleLayer()
     print(model(x).shape)
-    # import thop
-    # total_ops, total_params = thop.profile(model, (x,))
-    # print(total_ops,' ', total_params)
-
 
