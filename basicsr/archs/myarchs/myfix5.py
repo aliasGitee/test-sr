@@ -22,6 +22,10 @@ from basicsr.archs.msnlan.common import CAer as CA
 #    Manga109
 #	    psnr: 38.6541/38.5548  ssim: 0.9772/0.9770
 
+#wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda_12.4.1_550.54.15_linux.run
+#wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda_12.4.1_550.54.15_linux.run
+#sudo sh cuda_12.4.1_550.54.15_linux.run
+#sudo sh cuda_12.4.1_550.54.15_linux.run
 # Layer Norm
 class LayerNorm(nn.Module):
     def __init__(self, normalized_shape, eps=1e-6, data_format="channels_first"):
