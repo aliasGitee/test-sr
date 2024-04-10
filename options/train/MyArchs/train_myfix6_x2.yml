@@ -42,7 +42,7 @@ datasets:
 
 # network structures
 network_g:
-  type: MyFix5
+  type: MyFix6
   upscale: 2
 
 # path
