@@ -287,7 +287,7 @@ def make_layer(block, n_layers):
     return nn.Sequential(*layers)
 
 
-@ARCH_REGISTRY.register()
+#@ARCH_REGISTRY.register()
 class BSRN(nn.Module):
     def __init__(self, num_in_ch=3, num_feat=64, num_block=8, num_out_ch=3, upscale=4,
                  conv='BSConvU', upsampler='pixelshuffledirect', p=0.25):
@@ -354,3 +354,9 @@ class BSRN(nn.Module):
 
         return output
 
+if __name__ == '__main__':
+    import thop
+    x = torch.randn(1, 3, 48, 48)
+    model = BSRN(upscale=2)
+    total_ops, total_params = thop.profile(model,(x,))
+    print(total_ops, ' ',total_params)

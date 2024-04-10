@@ -124,13 +124,16 @@ if __name__ == '__main__':
     #     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-    # net = EMT(upscale=4, dim=60, n_blocks=6, n_layers=6,num_in_ch=3,num_out_ch=3,num_heads=3,mlp_ratio=2,
-    #           n_GTLs=2,window_list=[ [32, 8],[8, 32] ],shift_list=[ [16, 4],[4, 16]],task='lsr')
+    model = EMT(upscale=2, dim=60, n_blocks=6, n_layers=6,num_in_ch=3,num_out_ch=3,num_heads=3,mlp_ratio=2,
+              n_GTLs=2,window_list=[ [32, 8],[8, 32] ],shift_list=[ [16, 4],[4, 16]],task='lsr')
     # print(count_parameters(net))
-    model = MixedTransformerBlock(dim=60, num_layer=6, num_heads=3, num_GTLs=2,
-                                    window_list=[ [32, 8],[8, 32] ], shift_list=[ [16, 4],[4, 16]],
-                                    mlp_ratio=2, act_layer=Swish)
-    x = torch.randn(1,60,192,192)
-    import thop
-    total_ops, total_params = thop.profile(model,(x,))
-    print(total_ops,' ', total_params)
+    # model = MixedTransformerBlock(dim=60, num_layer=6, num_heads=3, num_GTLs=2,
+    #                                 window_list=[ [32, 8],[8, 32] ], shift_list=[ [16, 4],[4, 16]],
+    #                                 mlp_ratio=2, act_layer=Swish)
+    x = torch.randn(3,48,48)
+    from torchstat import stat
+    # import thop
+    # total_ops, total_params = thop.profile(model,(x,))
+    # print(total_ops,' ', total_params)
+    y = stat(model, (3,48,48))
+    print(y)

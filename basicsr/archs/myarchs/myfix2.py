@@ -264,11 +264,15 @@ class myfix2(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    model = myfix2()
+    model = myfix2(upscaling_factor=2)
     x = torch.randn(1,3,48,48)
     total_ops, total_params = thop.profile(model, (x,))
     print(total_ops,' ',total_params)
-
+    count = 0
+    for p in model.parameters():
+        #if p.requires_grad == True:
+        count += p.data.nelement()
+    print(count)
     # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
     # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
     # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

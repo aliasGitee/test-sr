@@ -12,13 +12,13 @@ datasets:
   train:
     name: DIV2K
     type: PairedImageDataset
-    dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
-    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_sub/X2_sub
+    dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub.lmdb
+    dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic_X2_sub.lmdb
     filename_tmpl: "{}"
     io_backend:
-      type: disk
+      type: lmdb
 
-    gt_size: 96
+    gt_size: 128
     use_hflip: true
     use_rot: true
 
@@ -43,7 +43,9 @@ datasets:
 # network structures
 network_g:
   type: MyFix5
-  upscale: 2
+  dim: 36
+  n_blocks: 4
+  upscaling_factor: 2
 
 # path
 path:
@@ -82,7 +84,7 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 1000
+  val_freq: !!float 5000
   save_img: False
   pbar: False
 

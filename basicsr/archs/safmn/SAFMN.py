@@ -181,3 +181,8 @@ if __name__ == '__main__':
     # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
     # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
     # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    count = 0
+    for p in model.parameters():
+        #if p.requires_grad == True:
+        count += p.data.nelement()
+    print(count)

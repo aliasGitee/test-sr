@@ -3,6 +3,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 from basicsr.archs.msid import Upsamplers as Upsamplers
+from basicsr.archs.vmamba.mamba_sys import VSSBlock, PatchEmbed2D, PatchExpand
+from basicsr.archs.safmn.SAFMN import SAFM,LayerNorm
+from einops import rearrange
+
+# class PatchUnembed(nn.Module):
+#     def __init__(self,dim,ws,ori_dim):
+#         super().__init__()
+#         self.linear = nn.Linear(dim, ori_dim*ws)
+#     def forward(self,x):
+#         x = self.linear(x)
+#         x = rearrange(x, "b (n_h n_w) c -> b ")
 
 
 class DepthWiseConv(nn.Module):
@@ -189,7 +200,7 @@ class SLKA(nn.Module):
         return x * a
 
 
-class AFD(nn.Module):
+class AFD2(nn.Module):
     def __init__(self, in_channels, conv=nn.Conv2d, attn_shrink=0.25, act_type='silu', attentionScale=2):
         super(AFD, self).__init__()
 
@@ -235,6 +246,24 @@ class AFD(nn.Module):
 
         return out_fused
 
+class AFD(nn.Module):
+    def __init__(self, in_channels, conv=nn.Conv2d, attn_shrink=0.25, act_type='silu', attentionScale=2):
+        super(AFD, self).__init__()
+        self.patch_embed = PatchEmbed2D(patch_size=4,in_chans=in_channels,embed_dim=in_channels*4)
+        self.mamba = VSSBlock(hidden_dim=in_channels)
+        self.patch_unembed = PatchExpand(dim=in_channels,dim_scale=2)
+        self.safm = SAFM(dim=in_channels)
+        #self.norm = LayerNorm(in_channels)
+        #self.esa = SLKA(in_channels, k=21, d=3, shrink=attn_shrink, scale=attentionScale)
+
+
+    def forward(self, x):
+        x = self.patch_embed(x)
+        x = self.mamba(x)
+        x = self.patch_unembed(x)
+        x = x.permute(0,3,1,2)
+        x = x + self.safm(x)
+        return x
 
 class MSID(nn.Module):
     def __init__(self, num_in_ch=3, num_feat=56, num_block=10, num_out_ch=3, upscale=3,
@@ -298,7 +327,7 @@ class MSID(nn.Module):
 
 if __name__ == '__main__':
     import thop
-    x = torch.randn(1, 3, 48, 48)
-    model = MSID(upscale=2)
+    x = torch.randn(1, 36, 48, 48)
+    model = AFD(in_channels=36,conv=BSConvU)
     total_ops, total_params = thop.profile(model,(x,))
     print(total_ops, ' ',total_params)
