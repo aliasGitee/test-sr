@@ -254,7 +254,7 @@ class AFD(nn.Module):
         return x
 
 class myfix6(nn.Module):
-    def __init__(self, num_in_ch=3, num_feat=36, num_block=10, num_out_ch=3, upscale=3,
+    def __init__(self, num_in_ch=3, num_feat=56, num_block=10, num_out_ch=3, upscale=3,
                  conv='BSConvU', upsampler='pixelshuffledirect', attn_shrink=0.25, act_type='gelu'):
         super(myfix6, self).__init__()
         kwargs = {'padding': 1}

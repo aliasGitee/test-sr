@@ -18,7 +18,7 @@ datasets:
     io_backend:
       type: lmdb
 
-    gt_size: 128
+    gt_size: 96
     use_hflip: true
     use_rot: true
 
