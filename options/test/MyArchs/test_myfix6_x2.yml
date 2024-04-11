@@ -8,8 +8,8 @@ datasets:
   test_1: # the 1st test dataset
     name: Set5
     type: PairedImageDataset
-    dataroot_gt: datasets/banchmark/Set5/GTmod12
-    dataroot_lq: datasets/banchmark/Set5/LRbicx2
+    dataroot_gt: datasets/banchmark_sr/Set5/GTmod12
+    dataroot_lq: datasets/banchmark_sr/Set5/LRbicx2
     filename_tmpl: "{}"
     io_backend:
       type: disk
@@ -18,8 +18,8 @@ datasets:
   test_2: # the 2nd test dataset
     name: Set14
     type: PairedImageDataset
-    dataroot_gt: datasets/banchmark/Set14/GTmod12
-    dataroot_lq: datasets/banchmark/Set14/LRbicx2
+    dataroot_gt: datasets/banchmark_sr/Set14/GTmod12
+    dataroot_lq: datasets/banchmark_sr/Set14/LRbicx2
     filename_tmpl: "{}"
     io_backend:
       type: disk
@@ -27,8 +27,8 @@ datasets:
   test_3: # the 1st test dataset
     name: B100
     type: PairedImageDataset
-    dataroot_gt: datasets/banchmark/B100/GTmod12
-    dataroot_lq: datasets/banchmark/B100//LRbicx2
+    dataroot_gt: datasets/banchmark_sr/B100/GTmod12
+    dataroot_lq: datasets/banchmark_sr/B100//LRbicx2
     filename_tmpl: "{}"
     io_backend:
       type: disk
@@ -36,8 +36,8 @@ datasets:
   test_4: # the 2nd test dataset
     name: Urban100
     type: PairedImageDataset
-    dataroot_gt: datasets/banchmark/Urban100/GTmod12
-    dataroot_lq: datasets/banchmark/Urban100//LRbicx2
+    dataroot_gt: datasets/banchmark_sr/Urban100/GTmod12
+    dataroot_lq: datasets/banchmark_sr/Urban100//LRbicx2
     filename_tmpl: "{}"
     io_backend:
       type: disk
@@ -45,8 +45,8 @@ datasets:
   test_5: # the 1st test dataset
     name: Manga109
     type: PairedImageDataset
-    dataroot_gt: datasets/banchmark/Manga109/GTmod12
-    dataroot_lq: datasets/banchmark/Manga109//LRbicx2
+    dataroot_gt: datasets/banchmark_sr/Manga109/GTmod12
+    dataroot_lq: datasets/banchmark_sr/Manga109//LRbicx2
     filename_tmpl: "{}"
     io_backend:
       type: disk
