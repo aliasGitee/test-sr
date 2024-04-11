@@ -67,7 +67,7 @@ network_g:
 
 # path
 path:
-  pretrain_network_g: experiments/train_myfix6_x2/models/net_g_380000.pth
+  pretrain_network_g: experiments/train_myfix6_x2/models/net_g_370000.pth
   strict_load_g: true
   param_key_g: params_ema
 
