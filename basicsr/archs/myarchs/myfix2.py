@@ -5,34 +5,6 @@ from torchvision import ops
 from basicsr.utils.registry import ARCH_REGISTRY
 from basicsr.archs.efficientvit.fix.ops_fix import EfficientViTBlock as EFTB
 
-'''
-542928096.0   261948.0 / 514825632.0   226668.0
-    Set5
-        psnr: 38.0465/37.9654  ssim: 0.9610/0.9611
-    Set14
-        psnr: 33.5812/33.5346  ssim: 0.9183/0.9176
-    B100
-        psnr: 32.1707/32.1559  ssim: 0.9003/0.9001
-    Urban100
-        psnr: 31.9662/31.8995  ssim: 0.9260/0.9258
-    Manga109
-	    psnr: 38.6889/38.5548  ssim: 0.9772/0.9770
-
-(SAFM -> SAFM)*4 改为 (SAFM -> DAFM)*4
-SAFM:
-    x:
-        x0 -> EFTB(dim=in_c//3) -> out
-        x1 -> maxpool*2 -> EFTB(dim=in_c//3) -> nearest_upsample -> out
-        x2 -> maxpool*4 -> EFTB(dim=in_c//3) -> nearest_upsample -> out
-        x3 -> maxpool*8 -> EFTB(dim=in_c//3) -> nearest_upsample -> out
-DAFM:
-    x:
-        x0 -> conv_k=3_d=4_g=chunkdim -> conv_k=3_g=chunkdim -> out
-        x1 -> conv_k=3_d=3_g=chunkdim -> maxpool*2 -> conv_k=3_g=chunkdim -> nearest_upsample -> out
-        x2 -> conv_k=3_d=2_g=chunkdim -> maxpool*4 -> conv_k=3_g=chunkdim -> nearest_upsample -> out
-        x3 -> conv_k=3_d=1_g=chunkdim -> maxpool*8 -> conv_k=3_g=chunkdim -> nearest_upsample -> out
-
-'''
 # Layer Norm
 class LayerNorm(nn.Module):
     def __init__(self, normalized_shape, eps=1e-6, data_format="channels_first"):
