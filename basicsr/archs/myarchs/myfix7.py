@@ -3,35 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 from basicsr.archs.msid import Upsamplers as Upsamplers
-
-'''
-DIV2K + Flicker2K
-
-thop:
-    x2:
-        82023071424.0   375464.0
-    x3:
-        37167972688.0   383039.0
-    x4:
-        21547864352.0   393644.0
-fvcore:
-    x2:
-        params: 375464
-        | module                               | #parameters or shape   | #flops     | #activations   |
-        |:-------------------------------------|:-----------------------|:-----------|:---------------|
-        | model                                | 0.375M                 | 82.152G    | 1.769G         |
-    x3:
-        params: 383039
-        | module                               | #parameters or shape   | #flops     | #activations   |
-        |:-------------------------------------|:-----------------------|:-----------|:---------------|
-        | model                                | 0.383M                 | 37.225G    | 0.786G         |
-    x4:
-        params: 393644
-        | module                               | #parameters or shape   | #flops     | #activations   |
-        |:-------------------------------------|:-----------------------|:-----------|:---------------|
-        | model                                | 0.394M                 | 21.58G     | 0.444G         |
-
-'''
+from basicsr.archs.vmamba.mamba_sys import VSSBlock, PatchEmbed2D, PatchExpand
+from basicsr.archs.safmn.SAFMN import SAFM,LayerNorm
+from basicsr.archs.vmamba.fix.mamba_sys_fix import myVSSBlock
 
 class DepthWiseConv(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3, stride=1, padding=1,
@@ -217,9 +191,9 @@ class SLKA(nn.Module):
         return x * a
 
 
-class AFD(nn.Module):
+class AFD3(nn.Module):
     def __init__(self, in_channels, conv=nn.Conv2d, attn_shrink=0.25, act_type='silu', attentionScale=2):
-        super(AFD, self).__init__()
+        super().__init__()
 
         kwargs = {'padding': 1}
         self.dc = self.distilled_channels = in_channels // 2
@@ -263,11 +237,45 @@ class AFD(nn.Module):
 
         return out_fused
 
+class AFD2(nn.Module):
+    def __init__(self, in_channels, conv=nn.Conv2d, attn_shrink=0.25, act_type='silu', attentionScale=2):
+        super().__init__()
+        self.mamba = VSSBlock(hidden_dim=in_channels)
+        self.safm = SAFM(dim=in_channels)
+        self.norm = LayerNorm(in_channels)
+        #self.esa = SLKA(in_channels, k=21, d=3, shrink=attn_shrink, scale=attentionScale)
 
-class MSID(nn.Module):
-    def __init__(self, num_in_ch=3, num_feat=56, num_block=10, num_out_ch=3, upscale=3,
+
+    def forward(self, x):
+        x = x.permute(0,2,3,1)
+        x = self.mamba(x)
+        x = x.permute(0,3,1,2)
+        x = x + self.safm(self.norm(x))
+        return x
+
+class AFD(nn.Module):
+    def __init__(self, in_channels, conv=nn.Conv2d, attn_shrink=0.25, act_type='silu', attentionScale=2):
+        super().__init__()
+        self.mamba = myVSSBlock(hidden_dim=in_channels)
+        #self.safm = SAFM(dim=in_channels)
+        self.norm = LayerNorm(in_channels)
+        #self.esa = SLKA(in_channels, k=21, d=3, shrink=attn_shrink, scale=attentionScale)
+
+
+    def forward(self, x):
+        x = x.permute(0,2,3,1)
+        x = self.mamba(x)
+        x = x.permute(0,3,1,2)
+        #x = x + self.safm(self.norm(x))
+        return self.norm(x)
+
+
+
+
+class myfix7(nn.Module):
+    def __init__(self, num_in_ch=3, num_feat=56, num_block=2, num_out_ch=3, upscale=3,
                  conv='BSConvU', upsampler='pixelshuffledirect', attn_shrink=0.25, act_type='gelu'):
-        super(MSID, self).__init__()
+        super(myfix7, self).__init__()
         kwargs = {'padding': 1}
         if conv == 'DepthWiseConv':
             self.conv = DepthWiseConv
@@ -275,18 +283,18 @@ class MSID(nn.Module):
             self.conv = BSConvU
         else:
             self.conv = nn.Conv2d
-        self.fea_conv = self.conv(num_in_ch * 4, num_feat, kernel_size=3, **kwargs)
+        self.fea_conv = self.conv(num_in_ch, num_feat, kernel_size=3, **kwargs)
 
         self.B1 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
         self.B2 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
-        self.B3 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
-        self.B4 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
-        self.B5 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
-        self.B6 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
-        self.B7 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
-        self.B8 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
-        self.B9 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
-        self.B10 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type,attentionScale=4)
+        # self.B3 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
+        # self.B4 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
+        # self.B5 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
+        # self.B6 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
+        # self.B7 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=3)
+        # self.B8 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
+        # self.B9 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
+        # self.B10 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type,attentionScale=4)
 
         self.c1 = nn.Conv2d(num_feat * num_block, num_feat, 1)
         self.GELU = nn.GELU()
@@ -302,31 +310,34 @@ class MSID(nn.Module):
             self.upsampler = Upsamplers.PA_UP(nf=num_feat, unf=24, out_nc=num_out_ch)
         else:
             raise NotImplementedError(("Check the Upsampeler. None or not support yet"))
-
+        self.norm = LayerNorm(num_feat)
     def forward(self, input):
-        input = torch.cat([input, input, input, input], dim=1)
+        #input = torch.cat([input, input, input, input], dim=1)
         out_fea = self.fea_conv(input)
         out_B1 = self.B1(out_fea)
         out_B2 = self.B2(out_B1)
-        out_B3 = self.B3(out_B2)
-        out_B4 = self.B4(out_B3)
-        out_B5 = self.B5(out_B4)
-        out_B6 = self.B6(out_B5)
-        out_B7 = self.B7(out_B6)
-        out_B8 = self.B8(out_B7)
-        out_B9 = self.B9(out_B8)
-        out_B10 = self.B10(out_B9)
+        # out_B3 = self.B3(out_B2)
+        # out_B4 = self.B4(out_B3)
+        # out_B5 = self.B5(out_B4)
+        # out_B6 = self.B6(out_B5)
+        # out_B7 = self.B7(out_B6)
+        # out_B8 = self.B8(out_B7)
+        # out_B9 = self.B9(out_B8)
+        # out_B10 = self.B10(out_B9)
 
-        trunk = torch.cat([out_B1, out_B2, out_B3, out_B4, out_B5, out_B6, out_B7, out_B8, out_B9, out_B10], dim=1)
+        trunk = torch.cat([out_B1, out_B2],dim=1)#, out_B3, out_B4, out_B5, out_B6, out_B7, out_B8, out_B9, out_B10], dim=1)
         out_B = self.c1(trunk)
-        out_B = self.GELU(out_B)
+        out_B = self.GELU(self.norm(out_B))
         out_lr = self.c2(out_B) + out_fea
         output = self.upsampler(out_lr)
         return output
 
 if __name__ == '__main__':
     import thop
-    x = torch.randn(1, 3, 48, 48)
-    model = MSID(upscale=2)
+    x = torch.randn(1, 3, 48, 48).cuda()
+    model = myfix7(num_feat=56).cuda()
     total_ops, total_params = thop.profile(model,(x,))
     print(total_ops, ' ',total_params)
+    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

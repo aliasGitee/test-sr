@@ -286,7 +286,7 @@ if __name__ == '__main__':
     x = torch.randn(1,36,64,64)
     x = x.permute(0, 2, 3, 1)
     model = BiLevelRoutingAttention(dim=36,n_win=16,num_heads=4)
-    #print(model(x).shape)
-    from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
-    print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
-    print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))
+    print(model(x).shape)
+    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

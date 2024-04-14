@@ -6,6 +6,189 @@ from basicsr.archs.msid import Upsamplers as Upsamplers
 from basicsr.archs.vmamba.mamba_sys import VSSBlock, PatchEmbed2D, PatchExpand
 from basicsr.archs.safmn.SAFMN import SAFM,LayerNorm
 
+'''
+X2_DIV2K
+1280 * 720
+
+thop:
+    x2:
+        64445976000.0   282140.0
+    x3:
+        29370789000.0   289715.0
+    x4:
+        17156563200.0   300320.0
+
+fvcore:
+    x2:
+        params: 543212
+        | module                               | #parameters or shape   | #flops     | #activations   |
+        |:-------------------------------------|:-----------------------|:-----------|:---------------|
+        | model                                | 0.543M                 | 0.106T     | 2.506G         |
+    x3:
+        params: 550787
+        | module                               | #parameters or shape   | #flops     | #activations   |
+        |:-------------------------------------|:-----------------------|:-----------|:---------------|
+        | model                                | 0.551M                 | 47.907G    | 1.114G         |
+    x4:
+        params: 561392
+        | module                               | #parameters or shape   | #flops     | #activations   |
+        |:-------------------------------------|:-----------------------|:-----------|:---------------|
+        | model                                | 0.561M                 | 27.6G      | 0.629G         |
+
+2024-04-12 11:50:01,132 INFO: Testing Set5...
+2024-04-12 11:50:02,259 INFO: Validation Set5
+         # psnr: 38.0752        Best: 38.0752 @ test_myfix6_x2 iter
+         # ssim: 0.9612 Best: 0.9612 @ test_myfix6_x2 iter
+
+2024-04-12 11:50:02,260 INFO: Testing Set14...
+2024-04-12 11:50:05,173 INFO: Validation Set14
+         # psnr: 33.8424        Best: 33.8424 @ test_myfix6_x2 iter
+         # ssim: 0.9200 Best: 0.9200 @ test_myfix6_x2 iter
+
+2024-04-12 11:50:05,173 INFO: Testing B100...
+2024-04-12 11:50:16,163 INFO: Validation B100
+         # psnr: 32.2436        Best: 32.2436 @ test_myfix6_x2 iter
+         # ssim: 0.9011 Best: 0.9011 @ test_myfix6_x2 iter
+
+2024-04-12 11:50:16,164 INFO: Testing Urban100...
+2024-04-12 11:51:19,885 INFO: Validation Urban100
+         # psnr: 32.5007        Best: 32.5007 @ test_myfix6_x2 iter
+         # ssim: 0.9315 Best: 0.9315 @ test_myfix6_x2 iter
+
+2024-04-12 11:51:19,891 INFO: Testing Manga109...
+2024-04-12 11:52:42,363 INFO: Validation Manga109
+         # psnr: 39.0092        Best: 39.0092 @ test_myfix6_x2 iter
+         # ssim: 0.9780 Best: 0.9780 @ test_myfix6_x2 iter
+'''
+
+
+'''
+x2:
+| module                               | #parameters or shape   | #flops     | #activations   |
+|:-------------------------------------|:-----------------------|:-----------|:---------------|
+| model                                | 0.543M                 | 0.106T     | 2.506G         |
+|  fea_conv                            |  0.728K                |  0.155G    |  25.805M       |
+|   fea_conv.pw                        |   0.168K               |   38.707M  |   12.902M      |
+|    fea_conv.pw.weight                |    (56, 3, 1, 1)       |            |                |
+|   fea_conv.dw                        |   0.56K                |   0.116G   |   12.902M      |
+|    fea_conv.dw.weight                |    (56, 1, 3, 3)       |            |                |
+|    fea_conv.dw.bias                  |    (56,)               |            |                |
+|  B1                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B1.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B1.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B1.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B1.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B1.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B1.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B1.norm                            |   0.112K               |   0        |   0            |
+|    B1.norm.weight                    |    (56,)               |            |                |
+|    B1.norm.bias                      |    (56,)               |            |                |
+|  B2                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B2.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B2.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B2.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B2.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B2.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B2.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B2.norm                            |   0.112K               |   0        |   0            |
+|    B2.norm.weight                    |    (56,)               |            |                |
+|    B2.norm.bias                      |    (56,)               |            |                |
+|  B3                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B3.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B3.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B3.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B3.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B3.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B3.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B3.norm                            |   0.112K               |   0        |   0            |
+|    B3.norm.weight                    |    (56,)               |            |                |
+|    B3.norm.bias                      |    (56,)               |            |                |
+|  B4                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B4.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B4.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B4.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B4.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B4.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B4.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B4.norm                            |   0.112K               |   0        |   0            |
+|    B4.norm.weight                    |    (56,)               |            |                |
+|    B4.norm.bias                      |    (56,)               |            |                |
+|  B5                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B5.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B5.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B5.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B5.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B5.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B5.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B5.norm                            |   0.112K               |   0        |   0            |
+|    B5.norm.weight                    |    (56,)               |            |                |
+|    B5.norm.bias                      |    (56,)               |            |                |
+|  B6                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B6.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B6.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B6.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B6.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B6.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B6.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B6.norm                            |   0.112K               |   0        |   0            |
+|    B6.norm.weight                    |    (56,)               |            |                |
+|    B6.norm.bias                      |    (56,)               |            |                |
+|  B7                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B7.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B7.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B7.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B7.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B7.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B7.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B7.norm                            |   0.112K               |   0        |   0            |
+|    B7.norm.weight                    |    (56,)               |            |                |
+|    B7.norm.bias                      |    (56,)               |            |                |
+|  B8                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B8.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B8.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B8.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B8.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B8.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B8.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B8.norm                            |   0.112K               |   0        |   0            |
+|    B8.norm.weight                    |    (56,)               |            |                |
+|    B8.norm.bias                      |    (56,)               |            |                |
+|  B9                                  |  50.12K                |  9.661G    |  0.244G        |
+|   B9.mamba                           |   46.256K              |   8.89G    |   0.227G       |
+|    B9.mamba.ln_1                     |    0.112K              |    64.512M |    0           |
+|    B9.mamba.self_attention           |    46.144K             |    8.825G  |    0.227G      |
+|   B9.safm                            |   3.752K               |   0.771G   |   17.186M      |
+|    B9.safm.mfr                       |    0.56K               |    38.556M |    4.284M      |
+|    B9.safm.aggr                      |    3.192K              |    0.723G  |    12.902M     |
+|   B9.norm                            |   0.112K               |   0        |   0            |
+|    B9.norm.weight                    |    (56,)               |            |                |
+|    B9.norm.bias                      |    (56,)               |            |                |
+|  B10                                 |  50.12K                |  9.661G    |  0.244G        |
+|   B10.mamba                          |   46.256K              |   8.89G    |   0.227G       |
+|    B10.mamba.ln_1                    |    0.112K              |    64.512M |    0           |
+|    B10.mamba.self_attention          |    46.144K             |    8.825G  |    0.227G      |
+|   B10.safm                           |   3.752K               |   0.771G   |   17.186M      |
+|    B10.safm.mfr                      |    0.56K               |    38.556M |    4.284M      |
+|    B10.safm.aggr                     |    3.192K              |    0.723G  |    12.902M     |
+|   B10.norm                           |   0.112K               |   0        |   0            |
+|    B10.norm.weight                   |    (56,)               |            |                |
+|    B10.norm.bias                     |    (56,)               |            |                |
+|  c1                                  |  31.416K               |  7.225G    |  12.902M       |
+|   c1.weight                          |   (56, 560, 1, 1)      |            |                |
+|   c1.bias                            |   (56,)                |            |                |
+|  c2                                  |  3.696K                |  0.839G    |  25.805M       |
+|   c2.pw                              |   3.136K               |   0.723G   |   12.902M      |
+|    c2.pw.weight                      |    (56, 56, 1, 1)      |            |                |
+|   c2.dw                              |   0.56K                |   0.116G   |   12.902M      |
+|    c2.dw.weight                      |    (56, 1, 3, 3)       |            |                |
+|    c2.dw.bias                        |    (56,)               |            |                |
+|  upsampler.upsampleOneStep.0         |  6.06K                 |  1.393G    |  2.765M        |
+|   upsampler.upsampleOneStep.0.weight |   (12, 56, 3, 3)       |            |                |
+|   upsampler.upsampleOneStep.0.bias   |   (12,)                |            |                |
+|  norm                                |  0.112K                |  0         |  0             |
+|   norm.weight                        |   (56,)                |            |                |
+|   norm.bias                          |   (56,)                |            |                |
+'''
 
 class DepthWiseConv(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3, stride=1, padding=1,
@@ -319,3 +502,6 @@ if __name__ == '__main__':
     model = myfix6(num_feat=56).cuda()
     total_ops, total_params = thop.profile(model,(x,))
     print(total_ops, ' ',total_params)
+    # from fvcore.nn import flop_count_table, FlopCountAnalysis, ActivationCountAnalysis
+    # print(f'params: {sum(map(lambda x: x.numel(), model.parameters()))}')
+    # print(flop_count_table(FlopCountAnalysis(model, x), activations=ActivationCountAnalysis(model, x)))

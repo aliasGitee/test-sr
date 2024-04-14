@@ -282,7 +282,6 @@ class GaussianDiffusion(nn.Module):
         img = self.res2img(img, img_lr_up)
         return img, rrdb_out
 
-
     @torch.no_grad()
     def interpolate(self, x1, x2, img_lr, img_lr_up, t=None, lam=0.5):
         b, *_, device = *x1.shape, x1.device

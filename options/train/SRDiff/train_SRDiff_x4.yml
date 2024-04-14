@@ -10,16 +10,16 @@ datasets:
   train:
     name: DIV2K
     type: PairedImageDataset
-    dataroot_gt: datasets/DF2K/DF2K_train_HR
-    dataroot_lq: datasets/DF2K/DF2K_train_LR_bicubic/X4
+    dataroot_gt: datasets/DF2K/DF2K_train_HR_sub.lmdb
+    dataroot_lq: datasets/DF2K/DF2K_train_LR_bicubic_X4_sub.lmdb
     # dataroot_gt: datasets/DIV2K/DIV2K_train_HR_sub
     # dataroot_lq: datasets/DIV2K/DIV2K_train_LR_bicubic/X4_sub
-    filename_tmpl: "{}x4"
+    filename_tmpl: "{}"
     io_backend:
-      type: disk
-      # type: lmdb
+      #type: disk
+      type: lmdb
 
-    gt_size: 192
+    gt_size: 160
     use_hflip: true
     use_rot: true
     mean: [0.5, 0.5, 0.5]
@@ -52,17 +52,18 @@ path:
 
 # training settings
 train:
+  ema_decay: 0.999
   optim_g:
     type: Adam
     lr: !!float 2e-4
-    #weight_decay: 0
-    #betas: [0.9, 0.999]
+    weight_decay: 0
+    betas: [0.9, 0.999]
 
   scheduler:
-    type: StepLR
-    step_size: 100000
-    gamma: 0.5
-    last_epoch: -1
+    type: CosineAnnealingRestartLR
+    periods: [400000]
+    restart_weights: [1]
+    eta_min: !!float 1e-4
 
   total_iter: 400000
   warmup_iter: -1 # no warm up
@@ -73,9 +74,8 @@ train:
 
 # validation settings
 val:
-  val_freq: !!float 2000 #change
-  save_img: true
-
+  val_freq: !!float 5000 #change
+  save_img: false
   metrics:
     psnr: # metric name, can be arbitrary
       type: calculate_psnr
